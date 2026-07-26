@@ -25,6 +25,21 @@ function floatTo16BitPCM(input: Float32Array): ArrayBuffer {
   return buffer;
 }
 
+// Resampling Helper: converts input Float32Array from native rate (e.g. 48kHz/44.1kHz) to 16kHz Int16 PCM
+function resampleAndConvertPCM(input: Float32Array, inputSampleRate: number, targetSampleRate: number = 16000): ArrayBuffer {
+  if (!inputSampleRate || inputSampleRate === targetSampleRate) {
+    return floatTo16BitPCM(input);
+  }
+  const ratio = inputSampleRate / targetSampleRate;
+  const newLength = Math.floor(input.length / ratio);
+  const result = new Float32Array(newLength);
+  for (let i = 0; i < newLength; i++) {
+    const originIndex = Math.floor(i * ratio);
+    result[i] = input[originIndex];
+  }
+  return floatTo16BitPCM(result);
+}
+
 // Float conversion helper: converts signed Int16 array buffer to Float32Array [-1.0, 1.0]
 function pcm16ToFloats(uint8Array: Uint8Array): Float32Array {
   const int16 = new Int16Array(
@@ -159,8 +174,17 @@ export class MyraaAudioSession {
             throw new Error("Holographic audio link unsupported: Web Audio API missing in browser.");
           }
 
-          this.inputAudioCtx = new AudioContextClass({ sampleRate: 16000 });
-          this.outputAudioCtx = new AudioContextClass({ sampleRate: 24000 });
+          try {
+            this.inputAudioCtx = new AudioContextClass({ sampleRate: 16000 });
+          } catch {
+            this.inputAudioCtx = new AudioContextClass();
+          }
+
+          try {
+            this.outputAudioCtx = new AudioContextClass({ sampleRate: 24000 });
+          } catch {
+            this.outputAudioCtx = new AudioContextClass();
+          }
 
           // Ensure Audio Contexts are active and resumed to bypass browser security blocks
           if (this.inputAudioCtx.state === "suspended") {
@@ -224,21 +248,19 @@ export class MyraaAudioSession {
             
             const channelData = e.inputBuffer.getChannelData(0);
 
-            // Compute RMS volume for VAD & Noise Gate
-            let sum = 0;
-            for (let i = 0; i < channelData.length; i++) {
-              sum += channelData[i] * channelData[i];
+            // Avoid sending speaker echo back ONLY when the model is actively speaking
+            if (this.currentState === "speaking") {
+              let sum = 0;
+              for (let i = 0; i < channelData.length; i++) {
+                sum += channelData[i] * channelData[i];
+              }
+              const rms = Math.sqrt(sum / channelData.length);
+              // Suppress speaker output feedback loop unless user intentionally speaks up
+              if (rms < 0.02) return;
             }
-            const rms = Math.sqrt(sum / channelData.length);
 
-            // 1. Silent noise gate: drop ambient room noise below 0.005
-            if (rms < 0.005) return;
-
-            // 2. Speaker Echo suppression: when model is speaking, only interrupt if user speaks loudly (RMS > 0.045)
-            if (this.currentState === "speaking" && rms < 0.045) return;
-
-            // Convert to base64 Int16 Little Endian PCM
-            const pcmBuffer = floatTo16BitPCM(channelData);
+            const currentSampleRate = this.inputAudioCtx?.sampleRate || 16000;
+            const pcmBuffer = resampleAndConvertPCM(channelData, currentSampleRate, 16000);
             const base64 = base64ArrayBuffer(pcmBuffer);
             
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
