@@ -215,6 +215,21 @@ function createMainWindow() {
     return true;
   });
 
+  // Display media (Screen Sharing) request handler for Electron
+  appSession.setDisplayMediaRequestHandler((request, callback) => {
+    const { desktopCapturer } = require("electron");
+    desktopCapturer.getSources({ types: ["screen", "window"] }).then((sources) => {
+      if (sources && sources.length > 0) {
+        callback({ video: sources[0], audio: false });
+      } else {
+        callback({});
+      }
+    }).catch((err) => {
+      console.error("[Electron Screen Capture] Display media error:", err);
+      callback({});
+    });
+  });
+
   mainWindow.once('ready-to-show', () => {
     if (splashWindow) splashWindow.close();
     mainWindow?.show();

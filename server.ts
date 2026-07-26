@@ -2015,9 +2015,12 @@ async function startServer() {
               audio: { data: msg.audio, mimeType: "audio/pcm;rate=16000" }
             });
           } else if (msg.type === "video" && msg.video) {
-            session.sendRealtimeInput({
-              video: { data: msg.video, mimeType: "image/jpeg" }
-            });
+            session.sendRealtimeInput([
+              {
+                mimeType: "image/jpeg",
+                data: msg.video
+              }
+            ]);
           } else if (msg.type === "toolResponse") {
             session.sendToolResponse({
               functionResponses: [
