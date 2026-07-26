@@ -84,23 +84,75 @@ def _image_size_kb(img) -> int:
     return len(buf.getvalue()) // 1024
 
 
+def _run_winsdk_ocr(img) -> str:
+    """Run native Windows Media OCR on PIL Image via winsdk."""
+    import asyncio
+    import tempfile
+    import concurrent.futures
+    tmp_path = None
+    try:
+        from winsdk.windows.graphics.imaging import BitmapDecoder
+        from winsdk.windows.media.ocr import OcrEngine
+        from winsdk.windows.storage import StorageFile, FileAccessMode
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        tmp_path = tmp.name
+        img.save(tmp_path, format="PNG")
+        tmp.close()
+
+        async def _async_ocr():
+            file = await StorageFile.get_file_from_path_async(tmp_path)
+            stream = await file.open_async(FileAccessMode.READ)
+            decoder = await BitmapDecoder.create_async(stream)
+            software_bitmap = await decoder.get_software_bitmap_async()
+            engine = OcrEngine.try_create_from_user_profile_languages()
+            if not engine:
+                return ""
+            ocr_result = await engine.recognize_async(software_bitmap)
+            return ocr_result.text.strip()
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                text = pool.submit(lambda: asyncio.run(_async_ocr())).result()
+        else:
+            text = asyncio.run(_async_ocr())
+
+        return text
+    except Exception as e:
+        print("[WinSDK OCR Error]:", e)
+        return ""
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+
+
 def _run_ocr(img) -> str:
+    # 1. Try native Windows Media OCR via winsdk
+    win_text = _run_winsdk_ocr(img)
+    if win_text:
+        return win_text
+
+    # 2. Try pytesseract as fallback
     try:
         import pytesseract
-    except ImportError:
-        raise ToolError(
-            "OCR unavailable: the 'pytesseract' package is not installed."
-        )
-    # Ensure the Tesseract binary is discoverable.
-    exe = os.environ.get("TESSERACT_PATH") or _find_tesseract_exe()
-    if exe:
-        pytesseract.pytesseract.tesseract_cmd = exe
-    try:
-        return pytesseract.image_to_string(img)
-    except Exception as e:  # noqa: BLE001
-        raise ToolError(
-            "OCR failed (is the Tesseract engine installed?). Detail: " + str(e)
-        )
+        exe = os.environ.get("TESSERACT_PATH") or _find_tesseract_exe()
+        if exe:
+            pytesseract.pytesseract.tesseract_cmd = exe
+        text = pytesseract.image_to_string(img)
+        if text.strip():
+            return text
+    except Exception:
+        pass
+
+    raise ToolError("OCR engine did not detect any readable text on screen.")
 
 
 def _find_tesseract_exe() -> Optional[str]:
