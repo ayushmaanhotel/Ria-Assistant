@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+Python311-arm64/
+myraa_venv/
+venv/
+__pycache__/
+*.pyc
+data/
+logs/
+*.tmp
+

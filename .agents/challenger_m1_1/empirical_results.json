@@ -1,0 +1,61 @@
+{
+  "total": 9,
+  "passed": 2,
+  "failed": 7,
+  "results": [
+    {
+      "category": "Types",
+      "testName": "TSC Compilation",
+      "passed": true,
+      "details": "verified node node_modules/typescript/bin/tsc --noEmit exits with code 0"
+    },
+    {
+      "category": "State Toggling",
+      "testName": "Uncancelled Async Switch Timer",
+      "passed": false,
+      "details": "handleAssistantSwitch uses setTimeout without clearing prior pending timers. Rapid toggling causes multiple concurrent connect() calls."
+    },
+    {
+      "category": "State Toggling",
+      "testName": "Assistant Parameter Wiring to Audio Session",
+      "passed": true,
+      "details": "Audio session sends assistant persona to server."
+    },
+    {
+      "category": "State Toggling",
+      "testName": "Backend WebSocket Persona Differentiation",
+      "passed": false,
+      "details": "server.ts /live handler hardcodes Myraa prompt and Aoede voice unconditionally for all connections regardless of activeAssistant setting."
+    },
+    {
+      "category": "Layout & Responsiveness",
+      "testName": "Missing Utility Class .no-scrollbar",
+      "passed": false,
+      "details": "MemoryDashboard.tsx uses className 'no-scrollbar', but .no-scrollbar is NOT defined in index.css or Tailwind config, leaving default scrollbars unhidden."
+    },
+    {
+      "category": "Layout & Responsiveness",
+      "testName": "Viewport Vertical Clipping Risk (h-screen overflow-hidden)",
+      "passed": false,
+      "details": "Root container uses fixed 'h-screen overflow-hidden'. On shorter vertical viewports (<768px) or when subtitles/banners expand, layout content is clipped with no scrollbar capability."
+    },
+    {
+      "category": "Layout & Responsiveness",
+      "testName": "Header Flex Overflow on Small Screens (<400px)",
+      "passed": false,
+      "details": "Header navbar uses flex items-center justify-between without flex-wrap or overflow handling. On viewports <400px, identity badge, assistant pill, and utilities overflow container width."
+    },
+    {
+      "category": "Transcript & Subtitles",
+      "testName": "Unconstrained Subtitle Height Growth",
+      "passed": false,
+      "details": "#cinematic-subtitles container has min-h-[6rem] but NO max-height, overflow-y-auto, or line-clamp. Long AI responses (500+ chars) cause height explosion that pushes header/footer off-screen."
+    },
+    {
+      "category": "State Toggling",
+      "testName": "Empirical Toggle Simulation Race Condition",
+      "passed": false,
+      "details": "Simulated 6 fast clicks: disconnect calls=1, but only 1 disconnect was triggered because state became 'disconnected' on 1st click, leaving pending timers uncancelled."
+    }
+  ]
+}

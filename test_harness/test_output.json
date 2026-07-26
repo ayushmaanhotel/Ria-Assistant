@@ -1,0 +1,285 @@
+{
+  "apiResults": [
+    {
+      "label": "Missing path query",
+      "status": 400,
+      "ok": false,
+      "body": {
+        "ok": false,
+        "valid": false,
+        "error": "No config path specified."
+      }
+    },
+    {
+      "label": "Non-existent file",
+      "status": 404,
+      "ok": false,
+      "body": {
+        "ok": false,
+        "valid": false,
+        "error": "Config file not found at: C:\\Users\\ayush\\OneDrive\\Documents\\MYRAA\\myraa-ai-assistant\\test_harness\\temp_configs\\missing.json"
+      }
+    },
+    {
+      "label": "Non-object JSON: null",
+      "status": 400,
+      "ok": false,
+      "body": {
+        "ok": false,
+        "valid": false,
+        "error": "Configuration payload must be a non-null JSON object."
+      }
+    },
+    {
+      "label": "Non-object JSON: Array []",
+      "status": 400,
+      "ok": false,
+      "body": {
+        "ok": false,
+        "valid": false,
+        "error": "Configuration payload must be a non-null JSON object."
+      }
+    },
+    {
+      "label": "Non-object JSON: String",
+      "status": 400,
+      "ok": false,
+      "body": {
+        "ok": false,
+        "valid": false,
+        "error": "Configuration payload must be a non-null JSON object."
+      }
+    },
+    {
+      "label": "Non-object JSON: Number",
+      "status": 400,
+      "ok": false,
+      "body": {
+        "ok": false,
+        "valid": false,
+        "error": "Configuration payload must be a non-null JSON object."
+      }
+    },
+    {
+      "label": "Non-object JSON: Boolean",
+      "status": 400,
+      "ok": false,
+      "body": {
+        "ok": false,
+        "valid": false,
+        "error": "Configuration payload must be a non-null JSON object."
+      }
+    },
+    {
+      "label": "Malformed JSON",
+      "status": 400,
+      "ok": false,
+      "body": {
+        "ok": false,
+        "valid": false,
+        "error": "Invalid JSON format: Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+      }
+    },
+    {
+      "label": "Valid JSON Object (Full)",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "ok": true,
+        "valid": true,
+        "path": "C:\\Users\\ayush\\OneDrive\\Documents\\MYRAA\\myraa-ai-assistant\\test_harness\\temp_configs\\valid_full.json",
+        "config": {
+          "assistantName": "Ria Test",
+          "voice": "Aoede",
+          "systemPrompt": "You are Ria test assistant.",
+          "directives": [
+            "Be helpful",
+            "Be concise"
+          ],
+          "memories": [
+            "User name is Alex"
+          ]
+        }
+      }
+    },
+    {
+      "label": "Valid JSON Object (Minimal)",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "ok": true,
+        "valid": true,
+        "path": "C:\\Users\\ayush\\OneDrive\\Documents\\MYRAA\\myraa-ai-assistant\\test_harness\\temp_configs\\valid_minimal.json",
+        "config": {
+          "assistantName": "Ria Minimal",
+          "voice": "Fenrir",
+          "systemPrompt": "",
+          "directives": [],
+          "memories": []
+        }
+      }
+    }
+  ],
+  "memoryResults": [
+    {
+      "label": "Empty query",
+      "matchedCount": 4,
+      "matchedIds": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "durationMs": "0.072",
+      "passed": true
+    },
+    {
+      "label": "Whitespace query",
+      "matchedCount": 4,
+      "matchedIds": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "durationMs": "0.005",
+      "passed": true
+    },
+    {
+      "label": "Mixed case: 'mYrAa'",
+      "matchedCount": 1,
+      "matchedIds": [
+        "2"
+      ],
+      "durationMs": "0.014",
+      "passed": true
+    },
+    {
+      "label": "Mixed case category: 'IdEnTiTy'",
+      "matchedCount": 1,
+      "matchedIds": [
+        "1"
+      ],
+      "durationMs": "0.003",
+      "passed": true
+    },
+    {
+      "label": "Special char: '['",
+      "matchedCount": 1,
+      "matchedIds": [
+        "1"
+      ],
+      "durationMs": "0.002",
+      "passed": true
+    },
+    {
+      "label": "Special char: ']' ",
+      "matchedCount": 1,
+      "matchedIds": [
+        "1"
+      ],
+      "durationMs": "0.001",
+      "passed": true
+    },
+    {
+      "label": "Special char: '('",
+      "matchedCount": 3,
+      "matchedIds": [
+        "2",
+        "3",
+        "4"
+      ],
+      "durationMs": "0.001",
+      "passed": true
+    },
+    {
+      "label": "Special char: ')'",
+      "matchedCount": 3,
+      "matchedIds": [
+        "2",
+        "3",
+        "4"
+      ],
+      "durationMs": "0.001",
+      "passed": true
+    },
+    {
+      "label": "Special char: '*'",
+      "matchedCount": 0,
+      "matchedIds": [],
+      "durationMs": "0.006",
+      "passed": true
+    },
+    {
+      "label": "Special char: '\\'",
+      "matchedCount": 0,
+      "matchedIds": [],
+      "durationMs": "0.002",
+      "passed": true
+    },
+    {
+      "label": "Special char: '$100k'",
+      "matchedCount": 1,
+      "matchedIds": [
+        "4"
+      ],
+      "durationMs": "0.001",
+      "passed": true
+    },
+    {
+      "label": "Special char: '+'",
+      "matchedCount": 1,
+      "matchedIds": [
+        "2"
+      ],
+      "durationMs": "0.001",
+      "passed": true
+    },
+    {
+      "label": "Special char: '?'",
+      "matchedCount": 0,
+      "matchedIds": [],
+      "durationMs": "0.001",
+      "passed": true
+    },
+    {
+      "label": "Emoji / Unicode: '☕'",
+      "matchedCount": 1,
+      "matchedIds": [
+        "3"
+      ],
+      "durationMs": "0.004",
+      "passed": true
+    },
+    {
+      "label": "Unicode accented: 'café'",
+      "matchedCount": 1,
+      "matchedIds": [
+        "3"
+      ],
+      "durationMs": "0.002",
+      "passed": true
+    },
+    {
+      "label": "Long query (1000 chars)",
+      "matchedCount": 0,
+      "matchedIds": [],
+      "durationMs": "0.005",
+      "passed": true
+    },
+    {
+      "label": "Long query (10000 chars)",
+      "matchedCount": 0,
+      "matchedIds": [],
+      "durationMs": "0.007",
+      "passed": true
+    },
+    {
+      "label": "No match query: 'nonexistentxyz'",
+      "matchedCount": 0,
+      "matchedIds": [],
+      "durationMs": "0.002",
+      "passed": true
+    }
+  ]
+}

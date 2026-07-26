@@ -1,0 +1,72 @@
+import { GoogleGenAI, Modality } from "@google/genai";
+
+const apiKey = process.env.GEMINI_API_KEY || "";
+const ai = new GoogleGenAI({ apiKey });
+
+const modelsToTest = [
+  "gemini-3.1-flash-live-preview",
+  "gemini-2.5-flash-native-audio-latest",
+  "gemini-2.5-flash-native-audio-preview-12-2025"
+];
+
+async function testModel(modelName) {
+  console.log(`\nTesting live model: ${modelName}...`);
+  return new Promise((resolve) => {
+    let closed = false;
+    try {
+      ai.live.connect({
+        model: modelName,
+        config: { responseModalities: [Modality.AUDIO] },
+        callbacks: {
+          onmessage: (msg) => {
+            console.log(`[${modelName} Message]:`, JSON.stringify(msg).substring(0, 100));
+          },
+          onclose: (e) => {
+            if (!closed) {
+              closed = true;
+              console.log(`[${modelName}] FAILED / CLOSED:`, e?.reason || e);
+              resolve(false);
+            }
+          },
+          onerror: (err) => {
+            if (!closed) {
+              closed = true;
+              console.log(`[${modelName}] ERROR:`, err);
+              resolve(false);
+            }
+          }
+        }
+      }).then((session) => {
+        setTimeout(() => {
+          if (!closed) {
+            closed = true;
+            console.log(`>>> [${modelName}] SUCCESS! CONNECTED & STABLE! <<<`);
+            try { session.close(); } catch {}
+            resolve(true);
+          }
+        }, 4000);
+      }).catch((err) => {
+        if (!closed) {
+          closed = true;
+          console.log(`[${modelName}] CATCH ERROR:`, err.message || err);
+          resolve(false);
+        }
+      });
+    } catch (err) {
+      console.log(`[${modelName}] INITIAL ERROR:`, err.message || err);
+      resolve(false);
+    }
+  });
+}
+
+async function runAll() {
+  for (const m of modelsToTest) {
+    const success = await testModel(m);
+    if (success) {
+      console.log(`\nFOUND WORKING LIVE MODEL: ${m}`);
+      break;
+    }
+  }
+}
+
+runAll();

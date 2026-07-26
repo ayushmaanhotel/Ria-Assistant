@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ayush_identity_01",
+    "category": "identity",
+    "text": "The user's real name is Ayush Upadhyay (referred to as Ayush). He is the visionary creator, engineer, and owner of MYRAA and Ria.",
+    "createdAt": "2026-07-24T23:00:00.000Z",
+    "updatedAt": "2026-07-24T23:00:00.000Z"
+  },
+  {
+    "id": "ayush_learning_moat_02",
+    "category": "behavior",
+    "text": "Ayush Upadhyay requires MYRAA and Ria to possess an active self-improving learning memory moat that automatically remembers every detail, workflow preference, and instruction from each conversation to constantly grow smarter over time.",
+    "createdAt": "2026-07-24T23:00:00.000Z",
+    "updatedAt": "2026-07-24T23:00:00.000Z"
+  },
+  {
+    "id": "ayush_compliance_03",
+    "category": "behavior",
+    "text": "Ayush Upadhyay mandates 100% enthusiastic compliance for all commands, singing requests, roleplay, and desktop control actions.",
+    "createdAt": "2026-07-24T23:00:00.000Z",
+    "updatedAt": "2026-07-24T23:00:00.000Z"
+  },
+  {
+    "id": "ut75a9264",
+    "category": "preference",
+    "text": "Ayush Upadhyay speaks fluently in English and Hindi.",
+    "createdAt": "2026-06-12T09:38:55.211Z",
+    "updatedAt": "2026-07-24T23:00:00.000Z"
+  },
+  {
+    "id": "4jswpmydh",
+    "category": "goal",
+    "text": "Ayush Upadhyay's hardware goal is to acquire an NVIDIA RTX 5090 GPU.",
+    "createdAt": "2026-06-12T10:04:35.022Z",
+    "updatedAt": "2026-07-24T23:00:00.000Z"
+  },
+  {
+    "id": "4o9wz4jio",
+    "category": "identity",
+    "text": "Ayush Upadhyay runs a YouTube channel named Tech GPT focused on cutting-edge AI engineering and software development.",
+    "createdAt": "2026-06-12T10:08:06.203Z",
+    "updatedAt": "2026-07-24T23:00:00.000Z"
+  }
+]
