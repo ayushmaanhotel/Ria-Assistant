@@ -28,7 +28,8 @@ import {
   ZoomIn,
   ZoomOut,
   Focus,
-  Lock
+  Lock,
+  Music
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Memory, MemoryCategory } from "./lib/memoryTypes";
@@ -38,6 +39,7 @@ import { SystemTelemetry } from "./components/SystemTelemetry";
 import { CodeDiffEditor } from "./components/CodeDiffEditor";
 import { CommandLauncher } from "./components/CommandLauncher";
 import { PrivateRoomModal } from "./components/PrivateRoomModal";
+import { MusicHubModal } from "./components/MusicHubModal";
 import { MyraaSettings, DEFAULT_SETTINGS, loadSettings, saveSettings } from "./lib/settingsStore";
 import { MyraaWakeWordDetector } from "./lib/wakeWord";
 
@@ -278,6 +280,7 @@ export default function App() {
   const [showCodeDiff, setShowCodeDiff] = useState<boolean>(false);
   const [showCommandLauncher, setShowCommandLauncher] = useState<boolean>(false);
   const [showPrivateRoom, setShowPrivateRoom] = useState<boolean>(false);
+  const [showMusicHub, setShowMusicHub] = useState<boolean>(false);
 
   // Global Ctrl+K / Cmd+K listener for Quick Action Command Launcher
   useEffect(() => {
@@ -316,6 +319,8 @@ export default function App() {
       }
     } else if (actionId === "open:privateroom") {
       setShowPrivateRoom(true);
+    } else if (actionId === "open:music") {
+      setShowMusicHub(true);
     } else if (actionId === "persona:myraa") {
       handleAssistantSwitch("MYRAA");
     } else if (actionId === "persona:ria") {
@@ -786,6 +791,15 @@ export default function App() {
               <span className="hidden sm:inline">PRIVATE ROOM</span>
             </button>
 
+            <button
+              onClick={() => setShowMusicHub(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:text-white hover:bg-cyan-500/20 text-xs font-mono tracking-widest transition cursor-pointer shadow-lg shadow-cyan-500/10"
+              title="Music & Audio Hub (YouTube, Beats & Volume)"
+            >
+              <Music size={14} className="text-cyan-400" />
+              <span className="hidden sm:inline">MUSIC</span>
+            </button>
+
             <button 
               onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
               className={`flex items-center gap-1.5 transition text-xs font-mono tracking-widest cursor-pointer ${
@@ -844,6 +858,60 @@ export default function App() {
 
       {/* CORE AVATAR AND VISUALS */}
       <main className="relative z-10 flex-1 w-full max-w-4xl mx-auto flex flex-col items-center justify-between py-6">
+        
+        {/* Floating Live Screen Vision Broadcast Widget */}
+        <AnimatePresence>
+          {isScreenSharing && (
+            <div className="absolute inset-x-0 top-0 z-40 flex justify-center p-2">
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                className="flex items-center justify-between gap-4 p-3.5 rounded-2xl border border-cyan-500/30 bg-slate-950/85 backdrop-blur-2xl shadow-2xl shadow-cyan-500/10 w-full max-w-xl"
+              >
+                <div className="flex items-center gap-3 overflow-hidden text-left">
+                  <div className="p-2 ml-1 rounded-xl bg-cyan-500/20 text-cyan-300 animate-pulse">
+                    <Monitor size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold font-mono tracking-wide text-cyan-200 uppercase">
+                        LIVE SCREEN VISION ACTIVE
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-[9px] font-mono text-cyan-300">
+                        {isScreenSharingPaused ? "PAUSED" : "GUIDING PC WORK"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      {settings.activeAssistant || "MYRAA"} is directly watching your screen to guide your work
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={isScreenSharingPaused ? resumeScreenSharing : pauseScreenSharing}
+                    className="px-2 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-mono transition cursor-pointer"
+                  >
+                    {isScreenSharingPaused ? "Resume" : "Pause"}
+                  </button>
+                  <button
+                    onClick={switchScreenShare}
+                    className="px-2 py-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-mono transition cursor-pointer"
+                  >
+                    Switch
+                  </button>
+                  <button
+                    onClick={stopScreenSharing}
+                    className="px-2 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-[11px] font-mono transition cursor-pointer"
+                  >
+                    Stop
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
         
         {/* Holographic Projection Screen Widget (if website opened) */}
         <AnimatePresence>
@@ -1316,6 +1384,13 @@ export default function App() {
         isOpen={showPrivateRoom}
         onClose={() => setShowPrivateRoom(false)}
         assistantName={settings.activeAssistant || "MYRAA"}
+      />
+
+      {/* Music & Audio Hub Modal */}
+      <MusicHubModal
+        isOpen={showMusicHub}
+        onClose={() => setShowMusicHub(false)}
+        themeColor={themeColor}
       />
     </div>
   );

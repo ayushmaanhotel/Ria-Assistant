@@ -20,7 +20,8 @@ import {
   Folder,
   Terminal,
   Lock,
-  Play
+  Play,
+  Music
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -130,6 +131,14 @@ const ACTION_ITEMS: ActionItem[] = [
     icon: Lock,
     description: "Open 100% private chat and encrypted document vault",
     badge: "Private Room"
+  },
+  {
+    id: "open:music",
+    title: "Music & Audio Hub",
+    category: "Tools",
+    icon: Music,
+    description: "Stream Lofi beats, study music, search YouTube, & control audio",
+    badge: "Music Hub"
   },
   // Personas
   {
