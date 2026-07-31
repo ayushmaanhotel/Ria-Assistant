@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { InteractiveWhiteboard } from "./InteractiveWhiteboard";
 import {
-  Lock,
   X,
   FileText,
-  Download,
   Send,
   Plus,
   Shield,
@@ -12,11 +11,11 @@ import {
   Sparkles,
   Folder,
   FileCode,
-  CheckCircle2,
   LockKeyhole,
   Trash2,
   KeyRound,
-  ShieldAlert
+  ShieldAlert,
+  PenTool
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -38,7 +37,7 @@ interface VaultFile {
 export function PrivateRoomModal({ isOpen, onClose, assistantName }: PrivateRoomModalProps) {
   const [files, setFiles] = useState<VaultFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "vault">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "whiteboard" | "vault">("chat");
 
   // Private Messaging State
   const [messages, setMessages] = useState<
@@ -157,6 +156,25 @@ export function PrivateRoomModal({ isOpen, onClose, assistantName }: PrivateRoom
     } finally {
       setIsGeneratingDoc(false);
     }
+  };
+
+  const handleSaveWhiteboardNotes = async (title: string, content: string) => {
+    try {
+      const res = await fetch("/api/private-room/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title || "Whiteboard Lesson Notes",
+          content: content,
+          format: "pdf"
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        fetchVaultFiles();
+        fetchMessages();
+      }
+    } catch {}
   };
 
   const handlePreviewFile = async (file: VaultFile) => {
@@ -332,6 +350,17 @@ export function PrivateRoomModal({ isOpen, onClose, assistantName }: PrivateRoom
                   Private Chat
                 </button>
                 <button
+                  onClick={() => setActiveTab("whiteboard")}
+                  className={`px-3 py-1 rounded-lg text-xs font-mono transition flex items-center gap-1.5 ${
+                    activeTab === "whiteboard"
+                      ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_12px_rgba(6,182,212,0.5)] font-bold"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <PenTool size={13} className="text-cyan-300 animate-pulse" />
+                  <span>Whiteboard</span>
+                </button>
+                <button
                   onClick={() => {
                     setActiveTab("vault");
                     fetchVaultFiles();
@@ -489,6 +518,13 @@ export function PrivateRoomModal({ isOpen, onClose, assistantName }: PrivateRoom
                     </button>
                   </div>
                 </div>
+              </div>
+            ) : activeTab === "whiteboard" ? (
+              <div className="flex-1 flex h-full overflow-hidden p-4 bg-slate-900/60">
+                <InteractiveWhiteboard
+                  assistantName={assistantName}
+                  onSaveNotes={handleSaveWhiteboardNotes}
+                />
               </div>
             ) : (
               <div className="flex-1 flex h-full overflow-hidden bg-slate-900/40">

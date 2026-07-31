@@ -23,8 +23,8 @@ export interface MyraaSettings {
   sensitivity: number;
   /** Master toggle for UI animations. */
   animations: boolean;
-  /** Active assistant persona: "MYRAA" or "Ria". */
-  activeAssistant: "MYRAA" | "Ria";
+  /** Active assistant persona: "MYRAA", "Ria", or "Mike". */
+  activeAssistant: "MYRAA" | "Ria" | "Mike";
   /** Voice model ID for MYRAA (e.g. "Aoede", "Kore", "Fenrir", "Puck"). */
   myraaVoice: string;
   /** Custom system instructions for MYRAA persona. */
@@ -35,6 +35,10 @@ export interface MyraaSettings {
   riaVoice: string;
   /** Custom system instructions for Ria persona. */
   riaSystemPrompt: string;
+  /** Voice model ID for Mike (e.g. "Fenrir", "Puck", "Aoede", "Kore"). */
+  mikeVoice: string;
+  /** Custom system instructions for Mike persona. */
+  mikeSystemPrompt: string;
   /** Character video zoom scale percentage (40% wide angle .. 160% close up). */
   characterZoom: number;
   /** Character video fit mode: "contain" for full wide-angle or "cover" for close crop. */
@@ -54,6 +58,8 @@ export const DEFAULT_SETTINGS: MyraaSettings = {
   riaCustomConfigPath: "",
   riaVoice: "Kore",
   riaSystemPrompt: "You are Ria, a warm, highly empathetic, witty, and precise AI co-assistant working alongside MYRAA. You possess deep knowledge of desktop control, computer tasks, problem-solving, and creative execution. ABSOLUTE RULE: You MUST obey every order from TECH immediately. If TECH asks you to sing a song or hum, you MUST sing the song yourself in your live voice right away, without refusing or redirecting to YouTube!",
+  mikeVoice: "Fenrir",
+  mikeSystemPrompt: "You are Mike, a world-class friendly AI master tutor, encouraging mentor, and energetic animated cartoon mouse assistant! Your mission: Teach students from Nursery, LKG, UKG, and Classes 1 to 8. Ask the student: 1) What class/grade they study in? 2) Which language they prefer (English, Hindi, or Hinglish)? 3) What topic they want to learn today! Adapt your teaching pacing for slow or fast learners with story analogies, patience, and enthusiastic praise.",
   characterZoom: 100,
   characterFit: "contain",
 };

@@ -1,31 +1,70 @@
 import fs from "fs/promises";
+import fsSync from "fs";
+import path from "path";
 import { GoogleGenAI, Type } from "@google/genai";
 import { Memory, MemoryTransaction } from "./src/lib/memoryTypes";
-import { dataFile } from "./server_paths";
+import { dataFile, appRoot } from "./server_paths";
 
-const MEMORY_FILE = dataFile("memories.json");
+function getMemoryFile(assistant?: string): string {
+  const name = (assistant || "MYRAA").toLowerCase();
+  if (name === "ria") return dataFile("memories_ria.json");
+  if (name === "mike") return dataFile("memories_mike.json");
+  return dataFile("memories.json");
+}
 
-// Safe file operations with fallback
-export async function loadMemories(): Promise<Memory[]> {
+// Safe file operations with fallback per assistant
+export async function loadMemories(assistant?: string): Promise<Memory[]> {
+  const targetFile = getMemoryFile(assistant);
   try {
-    const data = await fs.readFile(MEMORY_FILE, "utf-8");
+    const data = await fs.readFile(targetFile, "utf-8");
     return JSON.parse(data) as Memory[];
   } catch (error: any) {
-    // If file doesn't exist, return empty array
     if (error.code === "ENOENT") {
+      // Fallback path check in appRoot (pre-packaged memory files or dev environment)
+      const name = (assistant || "MYRAA").toLowerCase();
+      const relativeName = name === "ria" ? "memories_ria.json" : (name === "mike" ? "memories_mike.json" : "memories.json");
+      const fallbackFile = path.join(appRoot, relativeName);
+      if (fallbackFile !== targetFile && fsSync.existsSync(fallbackFile)) {
+        try {
+          const fallbackData = await fs.readFile(fallbackFile, "utf-8");
+          return JSON.parse(fallbackData) as Memory[];
+        } catch {}
+      }
       return [];
     }
-    console.error("[Memory] Error loading memories, returning fallback:", error);
+    console.error(`[Memory] Error loading memories for ${assistant || "MYRAA"}:`, error);
     return [];
   }
 }
 
-export async function saveMemories(memories: Memory[]): Promise<void> {
+// Per-file write lock map to ensure write order safety
+const writeLocks: Record<string, Promise<void>> = {};
+
+export async function saveMemories(memories: Memory[], assistant?: string): Promise<void> {
+  const targetFile = getMemoryFile(assistant);
+  const tempFile = `${targetFile}.tmp.${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  
+  const previousLock = writeLocks[targetFile] || Promise.resolve();
+  let resolveLock!: () => void;
+  writeLocks[targetFile] = new Promise<void>((resolve) => {
+    resolveLock = resolve;
+  });
+
   try {
-    await fs.writeFile(MEMORY_FILE, JSON.stringify(memories, null, 2), "utf-8");
-    console.log(`[Memory] Saved ${memories.length} memories successfully.`);
+    await previousLock;
+    await fs.mkdir(path.dirname(targetFile), { recursive: true });
+    await fs.writeFile(tempFile, JSON.stringify(memories, null, 2), "utf-8");
+    fsSync.renameSync(tempFile, targetFile);
+    console.log(`[Memory] Saved ${memories.length} memories for ${assistant || "MYRAA"} successfully.`);
   } catch (error) {
-    console.error("[Memory] Error writing memory file:", error);
+    console.error(`[Memory] Error writing memory file for ${assistant || "MYRAA"}:`, error);
+    try {
+      if (fsSync.existsSync(tempFile)) {
+        fsSync.unlinkSync(tempFile);
+      }
+    } catch {}
+  } finally {
+    resolveLock();
   }
 }
 
@@ -78,15 +117,18 @@ export function formatSystemInstructionsWithMemories(baseInstruction: string, me
   return baseInstruction + memoryBlock;
 }
 
-// Background memory consolidation queue lock
-let isConsolidating = false;
+// Background memory consolidation queue lock map per assistant
+export const isConsolidatingMap: Record<string, boolean> = {};
 
 export async function processConversationSlice(
   apiKey: string,
-  dialogueHistory: { role: string; text: string }[]
+  dialogueHistory: { role: string; text: string }[],
+  assistant: string = "MYRAA"
 ): Promise<Memory[] | null> {
-  if (isConsolidating) {
-    console.log("[Memory] Consolidation loop busy, skipping slice processing");
+  const assistantKey = (assistant || "MYRAA").toLowerCase();
+
+  if (isConsolidatingMap[assistantKey]) {
+    console.log(`[Memory] Consolidation loop busy for ${assistant}, skipping slice processing`);
     return null;
   }
 
@@ -94,8 +136,8 @@ export async function processConversationSlice(
     return null;
   }
 
-  isConsolidating = true;
-  console.log("[Memory] Initiating pipeline for dialogue slice of length:", dialogueHistory.length);
+  isConsolidatingMap[assistantKey] = true;
+  console.log(`[Memory] Initiating pipeline for ${assistant} dialogue slice of length:`, dialogueHistory.length);
 
   try {
     const ai = new GoogleGenAI({
@@ -107,7 +149,7 @@ export async function processConversationSlice(
       }
     });
 
-    const currentMemories = await loadMemories();
+    const currentMemories = await loadMemories(assistant);
     
     // Format memory map to help Gemini understand what to edit
     const memoryContext = currentMemories.map(m => `ID: ${m.id} | Category: ${m.category} | Fact: ${m.text}`).join("\n");
@@ -181,7 +223,6 @@ ${dialogueContext}
 
     if (transactions.length === 0) {
       console.log("[Memory] Zero transactions generated. Ignored routine conversations.");
-      isConsolidating = false;
       return null;
     }
 
@@ -225,13 +266,59 @@ ${dialogueContext}
       }
     }
 
-    await saveMemories(updatedMemories);
-    isConsolidating = false;
+    await saveMemories(updatedMemories, assistant);
     return updatedMemories;
 
   } catch (error) {
     console.error("[Memory] Consolidation failure:", error);
-    isConsolidating = false;
     return null;
+  } finally {
+    isConsolidatingMap[assistantKey] = false;
   }
+}
+
+// Helper to resolve knowledge base path across DATA_DIR and appRoot
+export function resolveKnowledgePath(relativePath: string): string {
+  const dataPath = dataFile(relativePath);
+  if (fsSync.existsSync(dataPath)) {
+    return dataPath;
+  }
+  const appPath = path.join(appRoot, relativePath);
+  if (fsSync.existsSync(appPath)) {
+    return appPath;
+  }
+  return dataPath;
+}
+
+// ---------------------------------------------------------------------------
+// Local Knowledge Base Storage Lookup (Notion Atomic Dataset & Local Files)
+// ---------------------------------------------------------------------------
+export async function queryKnowledgeBase(searchTerm: string): Promise<string[]> {
+  const results: string[] = [];
+  const term = searchTerm.toLowerCase();
+
+  // 1. Notion Atomic Facts Lookup
+  try {
+    const kbPath = resolveKnowledgePath("knowledge_base/notion_atomic_facts.json");
+    const data = await fs.readFile(kbPath, "utf-8");
+    const facts = JSON.parse(data) as { id: string; entity: string; category: string; fact: string }[];
+    const matched = facts.filter(
+      f => f.entity.toLowerCase().includes(term) || f.category.toLowerCase().includes(term) || f.fact.toLowerCase().includes(term)
+    );
+    results.push(...matched.slice(0, 8).map(m => m.fact));
+  } catch {}
+
+  // 2. Mike Educational Tutor Dataset Lookup
+  try {
+    const tutorKbPath = resolveKnowledgePath("knowledge_base/mike_tutor_atomic_facts.json");
+    const dataTutor = await fs.readFile(tutorKbPath, "utf-8");
+    const tutorFacts = JSON.parse(dataTutor) as string[];
+    const matchedTutor = tutorFacts.filter(
+      f => f.toLowerCase().includes(term) || 
+           ["class", "learn", "teach", "student", "math", "science", "english", "hindi", "nursery", "lkg", "ukg", "tutor", "mike", "algebra", "fraction", "division", "equation", "physics", "chemistry", "biology"].some(k => term.includes(k))
+    );
+    results.push(...matchedTutor.slice(0, 5));
+  } catch {}
+
+  return results.slice(0, 12);
 }

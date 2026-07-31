@@ -5,14 +5,11 @@ import { BrowserAgent } from "./components/BrowserAgent";
 import { 
   Power, 
   Volume2, 
-  Info, 
   Sparkles, 
   Globe, 
   Maximize2, 
-  MessageSquareOff, 
   Compass, 
   CircleAlert,
-  MicOff,
   Mic,
   X,
   Brain,
@@ -25,11 +22,9 @@ import {
   Activity,
   FileCode,
   Command,
-  ZoomIn,
-  ZoomOut,
-  Focus,
   Lock,
-  Music
+  Music,
+  MoreHorizontal
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Memory, MemoryCategory } from "./lib/memoryTypes";
@@ -40,7 +35,8 @@ import { CodeDiffEditor } from "./components/CodeDiffEditor";
 import { CommandLauncher } from "./components/CommandLauncher";
 import { PrivateRoomModal } from "./components/PrivateRoomModal";
 import { MusicHubModal } from "./components/MusicHubModal";
-import { MyraaSettings, DEFAULT_SETTINGS, loadSettings, saveSettings } from "./lib/settingsStore";
+import { CharacterSelectorModal } from "./components/CharacterSelectorModal";
+import { MyraaSettings, loadSettings, saveSettings } from "./lib/settingsStore";
 import { MyraaWakeWordDetector } from "./lib/wakeWord";
 
 export default function App() {
@@ -281,6 +277,8 @@ export default function App() {
   const [showCommandLauncher, setShowCommandLauncher] = useState<boolean>(false);
   const [showPrivateRoom, setShowPrivateRoom] = useState<boolean>(false);
   const [showMusicHub, setShowMusicHub] = useState<boolean>(false);
+  const [showCharacterSelector, setShowCharacterSelector] = useState<boolean>(false);
+  const [showMoreMenu, setShowMoreMenu] = useState<boolean>(false);
 
   // Global Ctrl+K / Cmd+K listener for Quick Action Command Launcher
   useEffect(() => {
@@ -383,9 +381,9 @@ export default function App() {
 
   const sessionRef = useRef<MyraaAudioSession | null>(null);
 
-  // Fetch initial recollections from backend database
+  // Fetch recollections for active assistant from backend database
   useEffect(() => {
-    fetch("/api/memories")
+    fetch(`/api/memories?assistant=${settings.activeAssistant || "MYRAA"}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -393,14 +391,14 @@ export default function App() {
         }
       })
       .catch(err => console.error("Initial persistent recollections load failure:", err));
-  }, []);
+  }, [settings.activeAssistant]);
 
   const handleAddManualMemory = async (category: MemoryCategory, text: string) => {
     try {
       const resp = await fetch("/api/memories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, text })
+        body: JSON.stringify({ category, text, assistant: settings.activeAssistant || "MYRAA" })
       });
       const saved = await resp.json();
       if (saved && saved.id) {
@@ -413,7 +411,7 @@ export default function App() {
 
   const handleDeleteMemory = async (id: string) => {
     try {
-      const resp = await fetch(`/api/memories/${id}`, {
+      const resp = await fetch(`/api/memories/${id}?assistant=${settings.activeAssistant || "MYRAA"}`, {
         method: "DELETE"
       });
       const resObj = await resp.json();
@@ -546,7 +544,7 @@ export default function App() {
   connectHandlerRef.current = handleToggleConnection;
 
   // Maps theme colors to CSS ambient light spots
-  const handleAssistantSwitch = async (newAssistant: "MYRAA" | "Ria") => {
+  const handleAssistantSwitch = async (newAssistant: "MYRAA" | "Ria" | "Mike") => {
     if (settings.activeAssistant === newAssistant) return;
 
     // 1. Update settings store
@@ -555,6 +553,8 @@ export default function App() {
     // 2. Shift visual background atmosphere
     if (newAssistant === "Ria") {
       setThemeColor("violet");
+    } else if (newAssistant === "Mike") {
+      setThemeColor("gold");
     } else {
       setThemeColor("charcoal");
     }
@@ -652,46 +652,25 @@ export default function App() {
     }
   };
 
-  const getThemeTextGlow = () => {
-    switch (themeColor) {
-      case "violet": return "text-purple-400 drop-shadow-[0_0_12px_rgba(168,85,247,0.5)]";
-      case "crimson": return "text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.5)]";
-      case "emerald": return "text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]";
-      case "celestial": return "text-sky-400 drop-shadow-[0_0_12px_rgba(14,165,233,0.5)]";
-      case "gold": return "text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]";
-      case "rose": return "text-pink-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.5)]";
-      case "charcoal":
-      default:
-        return "text-indigo-400 drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]";
-    }
-  };
-
-  const getOrbRingColor = () => {
-    switch (state) {
-      case "listening": return "border-indigo-500/50 shadow-[0_0_30px_rgba(99,102,241,0.3)] bg-indigo-500/10";
-      case "speaking": return "border-purple-500/70 shadow-[0_0_40px_rgba(168,85,247,0.4)] bg-purple-500/10";
-      case "connecting": return "border-amber-500/50 animate-pulse bg-amber-500/10";
-      case "disconnected":
-      default:
-        return "border-white/10 hover:border-indigo-500/30 bg-white/5";
-    }
-  };
 
   return (
     <div
       id="myraa-holographic-desktop"
       data-theme={settings.activeAssistant === "Ria" ? "ria" : "myraa"}
-      className={`relative w-full h-screen overflow-hidden bg-[#020205] text-white ${getAmbientStyles()} theme-transition flex flex-col justify-between p-6 sm:p-10 select-none`}
+      className={`relative w-full h-screen overflow-hidden bg-[#020205] text-white ${getAmbientStyles()} theme-transition flex flex-col select-none`}
     >
-      {/* Ambient Background Gradients matching Frosted Glass theme */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-900/15 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-cyan-900/15 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] bg-indigo-800/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ZONE 1: COMPACT TOP BAR                                    */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* Ultra-Fast Hardware-Accelerated Radial Ambient Background Gradients */}
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(147,51,234,0.12),transparent_70%)] pointer-events-none transform-gpu" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12),transparent_70%)] pointer-events-none transform-gpu" />
+      <div className="absolute top-[20%] right-[10%] w-[300px] h-[300px] bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08),transparent_70%)] pointer-events-none transform-gpu" />
 
       {/* Decorative grid pattern background */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-40" />
 
-      {/* FULL VIEWPORT HOLOGRAPHIC STAGE: Myraa materializes across the entire screen */}
+      {/* FULL VIEWPORT HOLOGRAPHIC STAGE: Character fills the entire screen behind everything */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none">
         <MyraaCoreVisualizer
           session={sessionRef.current}
@@ -705,205 +684,134 @@ export default function App() {
         />
       </div>
 
-      {/* CYBER-GLASS NAVIGATION BAR CONTAINER */}
-      <header className="relative z-30 w-full max-w-6xl mx-auto select-none pt-2 sm:pt-4">
-        <div className="relative flex items-center justify-between px-6 py-3.5 rounded-2xl border border-white/10 hover:border-white/20 bg-slate-950/65 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] transition-all duration-300 group">
+      <header className="relative z-30 w-full px-3 pt-2 sm:px-5 sm:pt-3 shrink-0">
+        <div className="relative flex items-center justify-between px-4 py-2 rounded-xl border border-white/10 hover:border-white/20 bg-slate-950/80 backdrop-blur-sm shadow-[0_4px_20px_0_rgba(0,0,0,0.4)] transition-colors duration-300 transform-gpu">
           
           {/* Specular Top Border Highlight */}
-          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/25 to-transparent rounded-t-2xl pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/25 to-transparent rounded-t-xl pointer-events-none" />
 
-          {/* Brand & Assistant Identity Badge (Left) */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-extrabold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 uppercase">
-                RIA & MYRAA AI ASSISTANT
-              </span>
-              <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded bg-white/10 text-slate-400 border border-white/10">
-                v2.0
-              </span>
-            </div>
-
-            <div className="h-4 w-[1px] bg-white/10" />
-
-            {/* Dynamic Glowing Live Status Indicator */}
+          {/* Brand + Status (Left) */}
+          <div className="flex items-center gap-2.5">
+            <span className="font-mono text-[10px] font-extrabold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 uppercase">
+              MYRAA AI
+            </span>
+            <span className="text-[8px] font-mono font-semibold px-1.5 py-0.5 rounded bg-white/10 text-slate-400 border border-white/10">
+              v2.0
+            </span>
+            <div className="h-3 w-[1px] bg-white/10" />
             {renderGlowingStatusIndicator()}
           </div>
 
-          {/* Dual Assistant Selector Glass Pill (Center) */}
-          <div className="flex items-center p-1 rounded-xl border border-white/10 bg-black/50 backdrop-blur-md shadow-inner">
+          {/* Character Matrix Selector Button (Center) */}
+          <button
+            onClick={() => setShowCharacterSelector(true)}
+            className="flex items-center gap-2 px-3 py-1 rounded-lg border border-white/15 bg-gradient-to-r from-purple-500/10 via-cyan-500/10 to-amber-500/10 hover:border-cyan-400/40 backdrop-blur-sm transition-all duration-300 cursor-pointer shadow-md group"
+            title="Open Character Selection Matrix"
+          >
+            <Sparkles size={12} className="text-cyan-400 animate-pulse group-hover:rotate-12 transition-transform" />
+            <span className="text-[10px] font-mono font-bold tracking-widest text-white uppercase flex items-center gap-1.5">
+              <span className="text-cyan-300 font-extrabold">{settings.activeAssistant || "MYRAA"}</span>
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse" />
+          </button>
+
+          {/* More Menu (Right) */}
+          <div className="relative">
             <button
-              onClick={() => handleAssistantSwitch("MYRAA")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all duration-300 cursor-pointer ${
-                (settings.activeAssistant || "MYRAA") === "MYRAA"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_18px_rgba(6,182,212,0.4)]"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition cursor-pointer text-xs font-mono tracking-widest ${
+                showMoreMenu 
+                  ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-300" 
+                  : "border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20"
               }`}
+              title="More Actions"
             >
-              <Sparkles size={13} className={(settings.activeAssistant || "MYRAA") === "MYRAA" ? "text-cyan-400 animate-pulse" : "text-slate-400"} />
-              <span>MYRAA</span>
-              {(settings.activeAssistant || "MYRAA") === "MYRAA" && (
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
+              <MoreHorizontal size={14} />
+              <span className="hidden sm:inline text-[10px]">MORE</span>
+            </button>
+
+            {/* Dropdown Panel */}
+            <AnimatePresence>
+              {showMoreMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-52 py-2 rounded-xl border border-white/15 bg-slate-950/95 backdrop-blur-sm shadow-2xl z-50"
+                >
+                  {[
+                    { icon: <Compass size={13} />, label: "Topics & Suggestions", action: () => setShowGuide(!showGuide) },
+                    { icon: <Brain size={13} />, label: "Memory Recalls", action: () => setShowMemoryDashboard(!showMemoryDashboard) },
+                    { icon: <Activity size={13} className="text-cyan-400" />, label: "System Telemetry", action: () => setShowTelemetry(true) },
+                    { icon: <FileCode size={13} className="text-emerald-400" />, label: "Code Diff Editor", action: () => setShowCodeDiff(true) },
+                    { icon: <Command size={13} className="text-purple-400" />, label: "Command Launcher", action: () => setShowCommandLauncher(true) },
+                  ].map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => { item.action(); setShowMoreMenu(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-left text-xs font-mono text-slate-300 hover:text-white hover:bg-white/5 transition cursor-pointer"
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </motion.div>
               )}
-            </button>
-
-            <button
-              onClick={() => handleAssistantSwitch("Ria")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider transition-all duration-300 cursor-pointer ${
-                settings.activeAssistant === "Ria"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-400/50 shadow-[0_0_18px_rgba(168,85,247,0.4)]"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${settings.activeAssistant === "Ria" ? "bg-purple-400 shadow-[0_0_10px_#c084fc] animate-pulse" : "bg-slate-500"}`} />
-              <span>RIA</span>
-              {settings.activeAssistant === "Ria" && (
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc] animate-pulse" />
-              )}
-            </button>
-          </div>
-
-          {/* Header Action Utilities (Right) */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowGuide(!showGuide)}
-              className="flex items-center gap-1.5 text-xs font-mono tracking-widest text-slate-400 hover:text-white transition cursor-pointer"
-              title="Sway Themes and Info"
-            >
-              <Compass size={14} />
-              <span className="hidden sm:inline">TOPICS</span>
-            </button>
-
-            <button 
-              onClick={() => setShowMemoryDashboard(!showMemoryDashboard)}
-              className="flex items-center gap-1.5 text-xs font-mono tracking-widest text-slate-400 hover:text-white transition cursor-pointer"
-              title="Recollections Database"
-            >
-              <Brain size={14} />
-              <span className="hidden sm:inline">RECALLS</span>
-            </button>
-
-            <button
-              onClick={() => setShowPrivateRoom(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:text-white hover:bg-purple-500/20 text-xs font-mono tracking-widest transition cursor-pointer shadow-lg shadow-purple-500/10"
-              title="Private Conversation Room & Secure Document Vault"
-            >
-              <Lock size={14} className="text-purple-400" />
-              <span className="hidden sm:inline">PRIVATE ROOM</span>
-            </button>
-
-            <button
-              onClick={() => setShowMusicHub(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:text-white hover:bg-cyan-500/20 text-xs font-mono tracking-widest transition cursor-pointer shadow-lg shadow-cyan-500/10"
-              title="Music & Audio Hub (YouTube, Beats & Volume)"
-            >
-              <Music size={14} className="text-cyan-400" />
-              <span className="hidden sm:inline">MUSIC</span>
-            </button>
-
-            <button 
-              onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
-              className={`flex items-center gap-1.5 transition text-xs font-mono tracking-widest cursor-pointer ${
-                isScreenSharing 
-                  ? "text-cyan-400 font-semibold" 
-                  : "text-slate-400 hover:text-white"
-              }`}
-              title="Share Screen with Assistant"
-            >
-              <Monitor size={14} className={isScreenSharing && !isScreenSharingPaused ? "animate-pulse text-cyan-400" : ""} />
-              <span className="hidden sm:inline">{isScreenSharing ? "SHARING" : "SCREEN"}</span>
-            </button>
-
-            <button
-              onClick={() => setShowTelemetry(true)}
-              className="flex items-center gap-1.5 text-xs font-mono tracking-widest text-slate-400 hover:text-white transition cursor-pointer"
-              title="Live System Telemetry"
-            >
-              <Activity size={14} className="text-cyan-400" />
-              <span className="hidden sm:inline">TELEMETRY</span>
-            </button>
-
-            <button
-              onClick={() => setShowCodeDiff(true)}
-              className="flex items-center gap-1.5 text-xs font-mono tracking-widest text-slate-400 hover:text-white transition cursor-pointer"
-              title="Code Diff Reviewer"
-            >
-              <FileCode size={14} className="text-emerald-400" />
-              <span className="hidden sm:inline">DIFF</span>
-            </button>
-
-            <button
-              onClick={() => setShowCommandLauncher(true)}
-              className="flex items-center gap-1.5 text-xs font-mono tracking-widest text-slate-400 hover:text-white transition cursor-pointer"
-              title="Quick Action Command Launcher (Ctrl+K)"
-            >
-              <Command size={14} className="text-purple-400" />
-              <span className="hidden sm:inline">LAUNCH</span>
-            </button>
-
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className={`flex items-center gap-1.5 transition text-xs font-mono tracking-widest cursor-pointer ${
-                showSettings
-                  ? "text-cyan-400 font-semibold"
-                  : "text-slate-400 hover:text-white"
-              }`}
-              title="Settings"
-            >
-              <SettingsIcon size={14} className={showSettings ? "animate-spin [animation-duration:6s]" : ""} />
-              <span className="hidden sm:inline">SETTINGS</span>
-            </button>
+            </AnimatePresence>
           </div>
         </div>
       </header>
 
-      {/* CORE AVATAR AND VISUALS */}
-      <main className="relative z-10 flex-1 w-full max-w-4xl mx-auto flex flex-col items-center justify-between py-6">
+      {/* Click-away overlay for More menu */}
+      {showMoreMenu && (
+        <div className="fixed inset-0 z-20" onClick={() => setShowMoreMenu(false)} />
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ZONE 2: FULL-SCREEN CHARACTER + CONTENT ZONE               */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <main className="relative z-10 flex-1 w-full flex flex-col items-center justify-end overflow-hidden">
         
-        {/* Floating Live Screen Vision Broadcast Widget */}
+        {/* Floating Live Screen Vision Broadcast Banner */}
         <AnimatePresence>
           {isScreenSharing && (
-            <div className="absolute inset-x-0 top-0 z-40 flex justify-center p-2">
+            <div className="absolute inset-x-0 top-2 z-40 flex justify-center px-4">
               <motion.div
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="flex items-center justify-between gap-4 p-3.5 rounded-2xl border border-cyan-500/30 bg-slate-950/85 backdrop-blur-2xl shadow-2xl shadow-cyan-500/10 w-full max-w-xl"
+                className="flex items-center justify-between gap-4 px-4 py-2.5 rounded-xl border border-cyan-500/30 bg-slate-950/85 backdrop-blur-sm shadow-xl shadow-cyan-500/10 w-full max-w-lg transform-gpu"
               >
-                <div className="flex items-center gap-3 overflow-hidden text-left">
-                  <div className="p-2 ml-1 rounded-xl bg-cyan-500/20 text-cyan-300 animate-pulse">
-                    <Monitor size={20} />
+                <div className="flex items-center gap-2.5 overflow-hidden text-left">
+                  <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 animate-pulse">
+                    <Monitor size={16} />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-bold font-mono tracking-wide text-cyan-200 uppercase">
-                        LIVE SCREEN VISION ACTIVE
-                      </h4>
-                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-[9px] font-mono text-cyan-300">
-                        {isScreenSharingPaused ? "PAUSED" : "GUIDING PC WORK"}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 font-mono">
-                      {settings.activeAssistant || "MYRAA"} is directly watching your screen to guide your work
+                    <h4 className="text-[10px] font-bold font-mono tracking-wide text-cyan-200 uppercase">
+                      SCREEN VISION {isScreenSharingPaused ? "PAUSED" : "ACTIVE"}
+                    </h4>
+                    <p className="text-[9px] text-slate-400 font-mono">
+                      {settings.activeAssistant || "MYRAA"} watching your screen
                     </p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={isScreenSharingPaused ? resumeScreenSharing : pauseScreenSharing}
-                    className="px-2 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-mono transition cursor-pointer"
+                    className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono transition cursor-pointer"
                   >
                     {isScreenSharingPaused ? "Resume" : "Pause"}
                   </button>
                   <button
                     onClick={switchScreenShare}
-                    className="px-2 py-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-mono transition cursor-pointer"
+                    className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-mono transition cursor-pointer"
                   >
                     Switch
                   </button>
                   <button
                     onClick={stopScreenSharing}
-                    className="px-2 py-1 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-[11px] font-mono transition cursor-pointer"
+                    className="px-2 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-[10px] font-mono transition cursor-pointer"
                   >
                     Stop
                   </button>
@@ -916,35 +824,35 @@ export default function App() {
         {/* Holographic Projection Screen Widget (if website opened) */}
         <AnimatePresence>
           {activeProjectorUrl && (
-            <div className="absolute inset-x-0 top-0 z-30 flex justify-center p-2">
+            <div className="absolute inset-x-0 top-2 z-30 flex justify-center px-4">
               <motion.div
                 initial={{ opacity: 0, y: -20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="flex items-center justify-between gap-4 p-3.5 rounded-2xl border border-indigo-500/20 bg-indigo-950/45 backdrop-blur-xl shadow-lg w-full max-w-md"
+                className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-indigo-500/20 bg-indigo-950/45 backdrop-blur-sm shadow-lg w-full max-w-md transform-gpu"
               >
-                <div className="flex items-center gap-3 overflow-hidden text-left">
-                  <div className="p-2 ml-1 rounded-xl bg-indigo-500/20 text-indigo-300">
-                    <Globe size={18} />
+                <div className="flex items-center gap-2.5 overflow-hidden text-left">
+                  <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-300">
+                    <Globe size={16} />
                   </div>
                   <div className="overflow-hidden">
-                    <h4 className="text-xs font-bold font-mono tracking-wide text-indigo-200 uppercase">Holographic Projection Broadcast</h4>
-                    <p className="text-xs text-indigo-400 truncate max-w-[200px]">{activeProjectorUrl}</p>
+                    <h4 className="text-[10px] font-bold font-mono tracking-wide text-indigo-200 uppercase">Holographic Projection</h4>
+                    <p className="text-[9px] text-indigo-400 truncate max-w-[200px]">{activeProjectorUrl}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setActiveProjectorUrl(activeProjectorUrl)}
-                    className="p-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-400 transition"
+                    className="p-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-400 transition"
                     title="View Frame"
                   >
-                    <Maximize2 size={14} />
+                    <Maximize2 size={12} />
                   </button>
                   <button
                     onClick={() => setActiveProjectorUrl(null)}
-                    className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition"
+                    className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition"
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 </div>
               </motion.div>
@@ -952,11 +860,8 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Space Spacer to avoid head area */}
-        <div className="h-10 sm:h-20" />
-
-        {/* Cinematic dialogue layer overlay - Smooth, delicate text transitions with soft focus blur */}
-        <div id="cinematic-subtitles" className="w-full max-w-3xl flex flex-col items-center justify-center text-center px-6 relative z-25 mt-auto mb-6 pointer-events-none min-h-[6rem] max-h-[8rem] overflow-y-auto glass-scrollbar">
+        {/* Cinematic dialogue layer — floats above character near the bottom */}
+        <div id="cinematic-subtitles" className="w-full max-w-3xl flex flex-col items-center justify-center text-center px-6 relative z-25 mb-4 pointer-events-none min-h-[5rem] max-h-[7rem] overflow-y-auto glass-scrollbar">
           <AnimatePresence mode="wait">
             {(() => {
               const textType = modelCaption 
@@ -1015,32 +920,29 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="mt-6 p-5 rounded-2xl border border-white/10 bg-slate-900/85 backdrop-blur-2xl max-w-md text-left w-full absolute z-40 shadow-2xl"
+              className="p-4 rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-sm max-w-sm text-left w-full absolute bottom-24 z-40 shadow-2xl mx-4"
             >
-              <div className="flex items-center justify-between mb-3 text-white">
-                <div className="flex items-center gap-1.5 font-display text-sm font-bold tracking-wide">
-                  <Compass size={16} className="text-indigo-400" />
-                  <span>PLAYFUL CORE SUGGESTIONS</span>
+              <div className="flex items-center justify-between mb-2 text-white">
+                <div className="flex items-center gap-1.5 font-display text-xs font-bold tracking-wide">
+                  <Compass size={14} className="text-indigo-400" />
+                  <span>SUGGESTIONS</span>
                 </div>
                 <button 
                   onClick={() => setShowGuide(false)}
                   className="text-slate-400 hover:text-white transition"
                 >
-                  <X size={14} />
+                  <X size={12} />
                 </button>
               </div>
-              <p className="text-xs text-slate-400 mb-4 font-mono leading-relaxed">
-                Myraa is equipped with dynamic visual modules and standard text browser projectors. Here are clever triggers to try speaking aloud:
-              </p>
-              <div className="space-y-2 text-xs font-serif italic text-indigo-300">
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-pointer font-sans normal-case text-slate-200">
-                  ⚡ &quot;Myraa, change atmosphere of your core to crimson&quot; <span className="text-[10px] font-mono text-indigo-400 block mt-0.5 font-medium">Shifts theme color background</span>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-pointer text-slate-200">
+                  ⚡ &quot;Myraa, change atmosphere to crimson&quot;
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-pointer font-sans normal-case text-slate-200">
-                  ⚡ &quot;Open youtube.com on my screen please&quot; <span className="text-[10px] font-mono text-indigo-400 block mt-0.5 font-medium">Invokes browser projector panel</span>
+                <div className="p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-pointer text-slate-200">
+                  ⚡ &quot;Open youtube.com on my screen&quot;
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-pointer font-sans normal-case text-slate-200">
-                  ⚡ &quot;Tell me a witty joke and change background to gold&quot; <span className="text-[10px] font-mono text-indigo-400 block mt-0.5 font-medium">Combines tools & voice</span>
+                <div className="p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-pointer text-slate-200">
+                  ⚡ &quot;Tell me a joke and change background to gold&quot;
                 </div>
               </div>
             </motion.div>
@@ -1054,17 +956,17 @@ export default function App() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 15 }}
-              className="mt-6 flex items-start gap-3 p-4 rounded-2xl border border-rose-500/20 bg-rose-950/40 backdrop-blur-xl max-w-md w-full text-left"
+              className="flex items-start gap-2.5 p-3 rounded-xl border border-rose-500/20 bg-rose-950/40 backdrop-blur-sm max-w-sm w-full text-left mb-4 mx-4"
             >
-              <CircleAlert className="text-rose-400 shrink-0 mt-0.5" size={18} />
+              <CircleAlert className="text-rose-400 shrink-0 mt-0.5" size={16} />
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-rose-300 font-mono">Core Error Protocol</h4>
-                <p className="text-xs text-rose-200 mt-1 leading-relaxed">{errorText}</p>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-rose-300 font-mono">Error</h4>
+                <p className="text-[10px] text-rose-200 mt-0.5 leading-relaxed">{errorText}</p>
                 <button
                   onClick={() => setErrorText(null)}
-                  className="mt-2 text-[10px] font-bold text-rose-400 underline font-mono uppercase"
+                  className="mt-1 text-[9px] font-bold text-rose-400 underline font-mono uppercase"
                 >
-                  Dismiss Code
+                  Dismiss
                 </button>
               </div>
             </motion.div>
@@ -1073,128 +975,135 @@ export default function App() {
 
       </main>
 
-      {/* FOOTER INTERFACE WITH WAVEFORM AND CONTROLS */}
-      <footer className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center gap-5 mt-auto">
-        
-        {/* Dynamic Minimalist Waveform Visualizer */}
-        <div className="flex items-center justify-center gap-1 h-8 w-44">
-          {[12, 28, 16, 32, 20, 8].map((baseHeight, idx) => {
-            let heightFactor = 0.35;
-            if (state === "speaking") {
-              heightFactor = 0.35 + Math.sin(Date.now() * 0.02 + idx * 0.9) * 0.65;
-            } else if (state === "listening") {
-              heightFactor = 0.2 + Math.sin(Date.now() * 0.01 + idx * 0.5) * 0.4;
-            } else {
-              heightFactor = idx % 2 === 0 ? 0.25 : 0.12;
-            }
-            const calculatedHeight = Math.max(3, baseHeight * heightFactor);
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ZONE 3: FIXED BOTTOM CONTROL DOCK                          */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <footer className="relative z-30 w-full px-3 pb-3 sm:px-5 sm:pb-4 shrink-0">
+        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-3">
+          
+          {/* Minimalist Waveform Visualizer */}
+          <div className="flex items-center justify-center gap-1 h-5 w-32">
+            {[12, 28, 16, 32, 20, 8].map((baseHeight, idx) => {
+              let heightFactor = 0.35;
+              if (state === "speaking") {
+                heightFactor = 0.35 + Math.sin(Date.now() * 0.02 + idx * 0.9) * 0.65;
+              } else if (state === "listening") {
+                heightFactor = 0.2 + Math.sin(Date.now() * 0.01 + idx * 0.5) * 0.4;
+              } else {
+                heightFactor = idx % 2 === 0 ? 0.25 : 0.12;
+              }
+              const calculatedHeight = Math.max(2, baseHeight * heightFactor * 0.7);
 
-            return (
-              <div
-                key={idx}
-                className={`w-0.5 rounded-full transition-all duration-300 ${
-                  state === "speaking" ? "bg-purple-400" : state === "listening" ? "bg-cyan-400" : "bg-white/10"
-                }`}
-                style={{ height: `${calculatedHeight}px` }}
-              />
-            );
-          })}
-        </div>
+              return (
+                <div
+                  key={idx}
+                  className={`w-0.5 rounded-full transition-all duration-300 ${
+                    state === "speaking" ? "bg-purple-400" : state === "listening" ? "bg-cyan-400" : "bg-white/10"
+                  }`}
+                  style={{ height: `${calculatedHeight}px` }}
+                />
+              );
+            })}
+          </div>
 
-        {/* Interactive Assistant Camera Framing & Zoom Control Pill */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border border-white/10 bg-slate-950/70 backdrop-blur-xl shadow-lg text-xs font-mono">
-          <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold mr-1">
-            CAM FRAMING
-          </span>
-
-          <button
-            onClick={() => {
-              const current = settings.characterZoom ?? 85;
-              const next = Math.max(40, current - 10);
-              handleSettingsChange({ characterZoom: next });
-            }}
-            className="p-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition cursor-pointer"
-            title="Zoom Out (Move Back / Wide Shot)"
-          >
-            <ZoomOut size={13} />
-          </button>
-
-          <span className="text-[10px] text-cyan-300 font-bold min-w-[42px] text-center">
-            {settings.characterZoom ?? 85}%
-          </span>
-
-          <button
-            onClick={() => {
-              const current = settings.characterZoom ?? 85;
-              const next = Math.min(160, current + 10);
-              handleSettingsChange({ characterZoom: next });
-            }}
-            className="p-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition cursor-pointer"
-            title="Zoom In (Move Closer / Close Up)"
-          >
-            <ZoomIn size={13} />
-          </button>
-
-          <div className="h-3 w-[1px] bg-white/15 mx-1" />
-
-          <button
-            onClick={() => {
-              const nextFit = (settings.characterFit ?? "contain") === "contain" ? "cover" : "contain";
-              handleSettingsChange({ characterFit: nextFit });
-            }}
-            className={`px-2 py-0.5 rounded-lg border text-[9px] font-bold tracking-wider transition cursor-pointer ${
-              (settings.characterFit ?? "contain") === "contain"
-                ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-300"
-                : "border-purple-400/40 bg-purple-500/20 text-purple-300"
-            }`}
-            title="Toggle Wide Shot (Full Character) vs Close Crop"
-          >
-            {(settings.characterFit ?? "contain") === "contain" ? "WIDE SHOT" : "CLOSE CROP"}
-          </button>
-        </div>
-
-        {/* Glossy Beautiful Primary Connector Core Node */}
-        <div className="flex items-center justify-center relative mb-4">
-          <button 
-            onClick={handleToggleConnection}
-            className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-500 cursor-pointer ${
-              state === "disconnected"
-                ? "bg-white/10 hover:bg-white/15 border border-white/15 text-white shadow-[0_0_20px_rgba(255,255,255,0.02)] hover:scale-105 active:scale-95"
-                : state === "listening"
-                ? "bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/80 text-cyan-200 shadow-[0_0_35px_rgba(34,211,238,0.3)] animate-pulse scale-105"
-                : state === "speaking"
-                ? "bg-purple-500/90 hover:bg-purple-600 border border-purple-400/95 text-white shadow-[0_0_35px_rgba(168,85,247,0.4)] scale-105"
-                : "bg-amber-600 border border-amber-300 text-white animate-spin"
-            }`}
-            title={state === "disconnected" ? "Awake Myraa" : "Sleep core"}
-          >
-            {state === "disconnected" ? (
-              <Power className="opacity-80" size={24} />
-            ) : state === "connecting" ? (
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : state === "listening" ? (
-              <Mic size={24} className="text-cyan-200" />
-            ) : (
-              <Volume2 size={24} className="text-white" />
-            )}
-          </button>
-
-          {/* Quiet Reset Projection Anchor */}
-          {(activeProjectorUrl || errorText) && (
-            <button 
-              onClick={() => {
-                if (activeProjectorUrl) setActiveProjectorUrl(null);
-                setErrorText(null);
-              }}
-              className="absolute right-[-60px] p-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition duration-150 cursor-pointer"
-              title="Reset Screen Broadcasts"
+          {/* Control Dock — Glass Bar */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur-sm shadow-[0_-4px_20px_0_rgba(0,0,0,0.4)] transform-gpu">
+            
+            {/* Left Group: Private Room & Music Hub */}
+            <button
+              onClick={() => setShowPrivateRoom(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/25 text-purple-300 hover:text-white hover:bg-purple-500/20 text-[10px] font-mono font-bold tracking-widest transition cursor-pointer shadow-md shadow-purple-500/5 hover:shadow-purple-500/15"
+              title="Private Conversation Room & Secure Document Vault"
             >
-              <X size={16} />
+              <Lock size={13} className="text-purple-400" />
+              <span className="hidden sm:inline">PRIVATE</span>
             </button>
-          )}
-        </div>
 
+            <button
+              onClick={() => setShowMusicHub(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 hover:text-white hover:bg-cyan-500/20 text-[10px] font-mono font-bold tracking-widest transition cursor-pointer shadow-md shadow-cyan-500/5 hover:shadow-cyan-500/15"
+              title="Music & Audio Hub"
+            >
+              <Music size={13} className="text-cyan-400" />
+              <span className="hidden sm:inline">MUSIC</span>
+            </button>
+
+            <button
+              onClick={isScreenSharing ? stopScreenSharing : startScreenSharing}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-mono font-bold tracking-widest transition cursor-pointer ${
+                isScreenSharing 
+                  ? "border-cyan-400/40 bg-cyan-500/20 text-cyan-300 shadow-md shadow-cyan-500/10" 
+                  : "border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20"
+              }`}
+              title="Share Screen with Assistant"
+            >
+              <Monitor size={13} className={isScreenSharing && !isScreenSharingPaused ? "animate-pulse text-cyan-400" : ""} />
+              <span className="hidden sm:inline">{isScreenSharing ? "SHARING" : "SCREEN"}</span>
+            </button>
+
+            <div className="h-6 w-[1px] bg-white/10 mx-1" />
+
+            {/* Center: Power Button */}
+            <button 
+              onClick={handleToggleConnection}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-500 cursor-pointer shrink-0 ${
+                state === "disconnected"
+                  ? "bg-white/10 hover:bg-white/15 border border-white/15 text-white shadow-[0_0_20px_rgba(255,255,255,0.02)] hover:scale-105 active:scale-95"
+                  : state === "listening"
+                  ? "bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/80 text-cyan-200 shadow-[0_0_30px_rgba(34,211,238,0.3)] animate-pulse scale-105"
+                  : state === "speaking"
+                  ? "bg-purple-500/90 hover:bg-purple-600 border border-purple-400/95 text-white shadow-[0_0_30px_rgba(168,85,247,0.4)] scale-105"
+                  : "bg-amber-600 border border-amber-300 text-white animate-spin"
+              }`}
+              title={state === "disconnected" ? "Awake Myraa" : "Sleep core"}
+            >
+              {state === "disconnected" ? (
+                <Power className="opacity-80" size={20} />
+              ) : state === "connecting" ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : state === "listening" ? (
+                <Mic size={20} className="text-cyan-200" />
+              ) : (
+                <Volume2 size={20} className="text-white" />
+              )}
+            </button>
+
+            <div className="h-6 w-[1px] bg-white/10 mx-1" />
+
+            {/* Right Group: Settings */}
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition cursor-pointer text-[10px] font-mono font-bold tracking-widest ${
+                showSettings
+                  ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-300"
+                  : "border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20"
+              }`}
+              title="Settings"
+            >
+              <SettingsIcon size={13} className={showSettings ? "animate-spin [animation-duration:6s]" : ""} />
+              <span className="hidden sm:inline">SETTINGS</span>
+            </button>
+
+            {/* Reset Projection Anchor */}
+            {(activeProjectorUrl || errorText) && (
+              <button 
+                onClick={() => {
+                  if (activeProjectorUrl) setActiveProjectorUrl(null);
+                  setErrorText(null);
+                }}
+                className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition duration-150 cursor-pointer"
+                title="Reset Screen Broadcasts"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
       </footer>
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* FLOATING OVERLAYS & MODALS                                 */}
+      {/* ═══════════════════════════════════════════════════════════ */}
 
       {/* Holographic Website frame projections */}
       <AnimatePresence>
@@ -1217,18 +1126,18 @@ export default function App() {
             initial={{ opacity: 0, scale: 0.85, x: 50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.85, x: 50 }}
-            className={`absolute bottom-6 md:bottom-10 right-6 md:right-10 z-50 w-72 p-4 rounded-2xl border ${
+            className={`fixed top-16 right-4 z-50 w-64 p-3 rounded-xl border ${
               isScreenSharingPaused 
-                ? "border-amber-500/20 bg-slate-950/70" 
-                : "border-cyan-500/20 bg-slate-950/70"
-            } backdrop-blur-2xl shadow-2xl overflow-hidden`}
+                ? "border-amber-500/20 bg-slate-950/80" 
+                : "border-cyan-500/20 bg-slate-950/80"
+            } backdrop-blur-sm shadow-2xl overflow-hidden transform-gpu`}
           >
             {/* Header / Indicator */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isScreenSharingPaused ? "bg-amber-400" : "bg-cyan-400 animate-pulse"}`} />
-                <span className="text-[10px] font-bold font-mono tracking-widest text-slate-200">
-                  {isScreenSharingPaused ? "SCREEN VISION PAUSED" : "SCREEN VISION ACTIVE"}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${isScreenSharingPaused ? "bg-amber-400" : "bg-cyan-400 animate-pulse"}`} />
+                <span className="text-[9px] font-bold font-mono tracking-widest text-slate-200">
+                  {isScreenSharingPaused ? "PAUSED" : "LIVE"}
                 </span>
               </div>
               <button 
@@ -1236,12 +1145,12 @@ export default function App() {
                 className="text-slate-400 hover:text-white transition-colors duration-150 p-1 rounded-lg hover:bg-white/5 cursor-pointer"
                 title="Stop Sharing"
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             </div>
 
-            {/* Smart Video PIP Preview Holder */}
-            <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-900 border border-white/5 mb-3 flex items-center justify-center group select-none">
+            {/* Smart Video PIP Preview */}
+            <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-slate-900 border border-white/5 mb-2 flex items-center justify-center select-none">
               <video
                 ref={(el) => {
                   if (el && screenStreamRef.current && el.srcObject !== screenStreamRef.current) {
@@ -1260,76 +1169,68 @@ export default function App() {
 
               {isScreenSharingPaused && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[10px] uppercase tracking-widest font-mono text-amber-400 font-bold px-2 py-1 bg-amber-950/40 border border-amber-500/20 rounded-md">
-                    Transmission Paused
+                  <span className="text-[9px] uppercase tracking-widest font-mono text-amber-400 font-bold px-2 py-0.5 bg-amber-950/40 border border-amber-500/20 rounded">
+                    Paused
                   </span>
                 </div>
               )}
               
               {!isScreenSharingPaused && screenVisionMode && (
-                <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded bg-cyan-950/50 border border-cyan-400/20 text-[9px] font-mono text-cyan-300">
-                  <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping" />
-                  <span>Streaming FPS: 0.5</span>
+                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-950/50 border border-cyan-400/20 text-[8px] font-mono text-cyan-300">
+                  <span className="w-1 h-1 bg-cyan-400 rounded-full animate-ping" />
+                  <span>0.5 FPS</span>
                 </div>
               )}
             </div>
 
             {/* Quick Action Control Strip */}
-            <div className="flex items-center justify-between gap-1.5 mb-2.5">
+            <div className="flex items-center justify-between gap-1 mb-2">
               {isScreenSharingPaused ? (
                 <button
                   onClick={resumeScreenSharing}
-                  className="flex-1 py-1.5 px-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg text-xs font-mono font-medium text-cyan-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  title="Resume Streaming Feed"
+                  className="flex-1 py-1 px-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg text-[10px] font-mono font-medium text-cyan-300 flex items-center justify-center gap-1 transition-all cursor-pointer"
                 >
-                  <Play size={10} />
-                  <span>Resume</span>
+                  <Play size={9} /> Resume
                 </button>
               ) : (
                 <button
                   onClick={pauseScreenSharing}
-                  className="flex-1 py-1.5 px-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-xs font-mono font-medium text-amber-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  title="Pause Streaming Feed"
+                  className="flex-1 py-1 px-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg text-[10px] font-mono font-medium text-amber-300 flex items-center justify-center gap-1 transition-all cursor-pointer"
                 >
-                  <Pause size={10} />
-                  <span>Pause</span>
+                  <Pause size={9} /> Pause
                 </button>
               )}
 
               <button
                 onClick={switchScreenShare}
-                className="py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-mono text-slate-300 hover:text-white flex items-center justify-center gap-1 transition-all cursor-pointer"
-                title="Choose Another Screen or Window"
+                className="py-1 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-mono text-slate-300 hover:text-white flex items-center justify-center gap-1 transition-all cursor-pointer"
               >
-                <RefreshCw size={11} />
-                <span>Switch</span>
+                <RefreshCw size={9} /> Switch
               </button>
 
               <button
                 onClick={stopScreenSharing}
-                className="py-1.5 px-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg text-xs font-mono text-rose-400 flex items-center justify-center gap-1 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-                title="Terminate Stream"
+                className="py-1 px-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg text-[10px] font-mono text-rose-400 flex items-center justify-center gap-1 transition-all cursor-pointer"
               >
-                <Square size={9} />
-                <span>Stop</span>
+                <Square size={8} /> Stop
               </button>
             </div>
 
-            {/* Core Mode Configuration Toggle */}
+            {/* Core Mode Toggle */}
             <div className="pt-2 border-t border-white/5 flex items-center justify-between text-left">
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold font-mono text-slate-200">SCREEN VISION MODE</span>
-                <span className="text-[8px] text-slate-400 uppercase font-mono max-w-[150px]">Gemini Auto-Analysis</span>
+                <span className="text-[9px] font-bold font-mono text-slate-200">VISION MODE</span>
+                <span className="text-[7px] text-slate-400 uppercase font-mono">Auto-Analysis</span>
               </div>
               <button
                 onClick={() => setScreenVisionMode(!screenVisionMode)}
-                className={`w-10 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                className={`w-9 h-4.5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer ${
                   screenVisionMode ? "bg-cyan-500" : "bg-white/10"
                 }`}
               >
                 <div
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-200 ease-in-out ${
-                    screenVisionMode ? "translate-x-5" : "translate-x-0"
+                  className={`bg-white w-3.5 h-3.5 rounded-full shadow-md transform duration-200 ease-in-out ${
+                    screenVisionMode ? "translate-x-4" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -1392,6 +1293,16 @@ export default function App() {
         onClose={() => setShowMusicHub(false)}
         themeColor={themeColor}
       />
+
+      {/* Character Matrix Selector Modal */}
+      <CharacterSelectorModal
+        isOpen={showCharacterSelector}
+        onClose={() => setShowCharacterSelector(false)}
+        settings={settings}
+        onUpdateSettings={handleSettingsChange}
+        onSelectCharacter={handleAssistantSwitch}
+      />
     </div>
   );
 }
+

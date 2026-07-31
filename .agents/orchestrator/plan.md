@@ -1,20 +1,37 @@
-# Project: MYRAA Desktop AI Assistant UI Overhaul and Ria Persona Integration
+# Project Plan: Mike (Cartoon Mouse Master AI Tutor) Training, Evaluation & Pedagogical Quality Audit
 
-## Architecture
-MYRAA Desktop AI Assistant built with React, TypeScript, Tailwind/CSS, Electron/Vite backend.
+## Overview
+Comprehensive training, curriculum validation, multi-agent evaluation, and pedagogical quality audit across Nursery to Class 8 in English, Hindi, and Hinglish for Mike the Cartoon Mouse Master AI Tutor.
 
 ## Milestones
 
-| # | Name | Scope | Dependencies | Status |
-|---|------|-------|-------------|--------|
-| 0 | Exploratory Codebase Analysis | Analyze existing structure in `src/`, settings, audio visualizer, components | none | DONE |
-| 1 | R1: Modernized Cyber-Glass UI & Assistant Selector | Redesign `src/App.tsx` & components with cyber-glass aesthetic, glowing status indicators, particle backdrop, interactive audio visualizer, top navigation pill/sidebar selector | M0 | DONE |
-| 2 | R2: Dual Assistant Persona Engine (MYRAA & Ria) | Integrate Ria co-assistant persona alongside MYRAA with distinct voice settings, system instructions, avatar/visual styling, custom config path loading | M1 | DONE |
-| 3 | R3: Enhanced Interactive GenUI & Telemetry Panels | Live system telemetry panel, code diff review panel, quick action launcher, interactive memory dashboard | M1, M2 | IN_PROGRESS |
-| 4 | Build Verification & Final Acceptance | `npx tsc --noEmit` check, full build check, settings store validation, zero layout overflow | M1, M2, M3 | PLANNED |
+### Milestone 0: Exploration & Architecture Baseline
+- Scope out current repository structure, existing curriculum data, Mike's persona prompt / tutor engine code, evaluation scripts, and memory storage files.
+- Deliverable: Detailed codebase exploration report in `.agents/explorer_0/analysis.md`.
 
-## Interface Contracts
-- Assistant Persona State: `ActivePersona` ('MYRAA' | 'Ria'), system prompt, voice parameters, avatar/styling, custom config path.
-- Settings Store: Persisted settings for assistant profiles, custom path loading, telemetry preferences.
-- Visualizer State: Animate according to assistant state (`idle`, `listening`, `speaking`, `processing`).
-- GenUI Panels: Telemetry Panel, Code Diff Reviewer, Quick Action Launcher, Memory Dashboard.
+### Milestone 1: Curriculum & Facts Store Audit and Expansion (R1)
+- Verify and expand dataset coverage for Nursery, LKG, UKG (phonics, CVC words, 1-100, shapes, Swar/Vyanjan).
+- Verify and expand dataset coverage for Primary 1-5 (long division, fractions, solar system, digestive system, grammar rules).
+- Verify and expand dataset coverage for Middle School 6-8 (linear equations, Pythagoras theorem, physics motion/force, chemistry acids/bases, active/passive voice).
+- Deliverable: Updated/expanded curriculum data & validation test suite passing 100%.
+
+### Milestone 2: Multi-Agent Simulation & Diagnostic Onboarding / Pacing Engine (R2)
+- Simulate student personas:
+  - Nursery toddlers (short sentences, simple phonics/shapes)
+  - Class 3 slow learners (gentle pacing, story-based explanations, enthusiastic praise)
+  - Class 8 algebra students speaking Hinglish (equations, Pythagoras, physics/chem in Hinglish)
+- Verify 3-step diagnostic onboarding (grade, language preference, topic).
+- Deliverable: Automated multi-agent persona simulation suite and verification tests.
+
+### Milestone 3: Automated Pedagogical Quality Audit & Memory Isolation (R3)
+- Automated checks for:
+  - Zero hallucination in factual explanations across grades and topics.
+  - Polite & encouraging tone ("Shabaash!", "Arey वाह!").
+  - Step-by-step breakdown of complex concepts.
+  - Strictly isolated memory persistence in `memories_mike.json` with zero cross-contamination to MYRAA (`memories.json`) or Ria (`memories_ria.json`).
+- Deliverable: Pedagogical quality audit runner & memory integrity test suite.
+
+### Milestone 4: Final End-to-End Verification & Verification Gate
+- Run full test suite covering R1, R2, R3.
+- Run Forensic Auditor to guarantee zero cheating / facade implementations.
+- Publish final completion report.

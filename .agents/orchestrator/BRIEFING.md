@@ -1,79 +1,66 @@
-# BRIEFING — 2026-07-24T13:03:00Z
+# BRIEFING — 2026-07-31T19:11:22+05:30
 
 ## Mission
-MYRAA Desktop AI Assistant UI Overhaul and Ria Persona Integration (R1: Cyber-Glass UI & Assistant Selector, R2: Dual Assistant Persona Engine, R3: Interactive GenUI & Telemetry Panels, Build Verification).
+Full training, curriculum validation, multi-agent evaluation, and pedagogical quality audit of Mike (Cartoon Mouse Master AI Tutor) across Nursery to Class 8 in English, Hindi, and Hinglish.
 
 ## 🔒 My Identity
-- Archetype: Project Orchestrator (Generation 2)
+- Archetype: self
 - Roles: orchestrator, user_liaison, human_reporter, successor
 - Working directory: c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant/.agents/orchestrator
 - Original parent: parent
-- Original parent conversation ID: b691a7d1-58f0-47c5-a07c-9c0842a694b6
+- Original parent conversation ID: 07977ea9-2d96-477e-b46c-e30ee6facbc3
 
 ## 🔒 My Workflow
 - **Pattern**: Project
-- **Scope document**: c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant/.agents/orchestrator/plan.md
-1. **Decompose**:
-   - Milestone 0: Exploratory Codebase Analysis
-   - Milestone 1 (R1): Modernized Cyber-Glass UI & Assistant Selector
-   - Milestone 2 (R2): Dual Assistant Persona Engine (MYRAA & Ria)
-   - Milestone 3 (R3): Enhanced Interactive GenUI & Telemetry Panels
-   - Milestone 4: Build Verification & Final Acceptance
-2. **Dispatch & Execute**:
-   - Iteration loop (Explorer -> Worker -> Reviewer -> Challenger -> Auditor -> Gate) per milestone
+- **Scope document**: c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant/PROJECT.md
+1. **Decompose**: Decompose task into Milestones across codebase exploration, curriculum dataset verification/expansion, diagnostic onboarding/pacing simulation, automated pedagogical quality audit & isolation verification, and end-to-end verification.
+2. **Dispatch & Execute**: Direct (iteration loop per milestone: Explorer -> Worker -> Reviewer -> Challenger -> Auditor) or Delegate to sub-orchestrator.
 3. **On failure**: Retry -> Replace -> Skip -> Redistribute -> Redesign -> Escalate
-4. **Succession**: Self-succeed at 16 spawns.
+4. **Succession**: Succession at 16 spawns.
 - **Work items**:
-  1. Exploratory Codebase Analysis [done]
-  2. R1 Cyber-Glass UI & Assistant Selector [done]
-  3. R2 Dual Assistant Persona Engine [done]
-  4. R3 Interactive GenUI & Telemetry Panels [in-progress]
-  5. Build Verification & Hardening [pending]
-- **Current phase**: 3
-- **Current focus**: Milestone 3: R3 Enhanced Interactive GenUI & Telemetry Panels
+  1. Initial Codebase & Curriculum Exploration [in-progress]
+  2. R1: Curriculum Dataset Verification & Expansion [pending]
+  3. R2: Multi-Agent Persona Simulation & Interactive Diagnostic Onboarding [pending]
+  4. R3: Automated Pedagogical Quality Audit & Memory Isolation [pending]
+  5. E2E Verification & Final Audit [pending]
+- **Current phase**: 1
+- **Current focus**: Exploration of codebase and project state
 
 ## 🔒 Key Constraints
 - NEVER write, modify, or create source code files directly.
 - NEVER run build/test commands yourself — require workers to do so.
 - MAY use file-editing tools ONLY for metadata/state files (.md) in .agents/ folder.
 - Never reuse a subagent after it has delivered its handoff.
-- Forensic Auditor verdict is a binary veto.
+- Forensic Auditor verdict is a BINARY VETO — violation means failure, no exceptions.
 
 ## Current Parent
-- Conversation ID: b691a7d1-58f0-47c5-a07c-9c0842a694b6
-- Updated: 2026-07-24T13:03:00Z
+- Conversation ID: 07977ea9-2d96-477e-b46c-e30ee6facbc3
+- Updated: 2026-07-31T19:11:22+05:30
 
 ## Key Decisions Made
-- Initialized workspace metadata for Project Orchestrator Gen 2.
-- Started heartbeat cron task-13.
-- Resumed state from Gen 1 handoff. Resuming execution at Milestone 3.
+- Initialized orchestrator workspace and state files.
 
 ## Team Roster
 | Agent | Type | Work Item | Status | Conv ID |
 |-------|------|-----------|--------|---------|
-| M3 Explorer | teamwork_preview_explorer | Milestone 3 Codebase & R3 Component Analysis | completed | 9775d393-0569-4b1a-80c3-697c76b037f9 |
-| M3 Implementer | teamwork_preview_worker | Milestone 3 R3 GenUI & Telemetry Implementation | completed | 6ee9c38c-1c85-494d-8970-b4e9453c7c5c |
-| M3 Reviewer 1 | teamwork_preview_reviewer | Milestone 3 Components Code Review | in-progress | 79a37df4-922e-4a4d-9ad9-dddc326b0c10 |
-| M3 Reviewer 2 | teamwork_preview_reviewer | Milestone 3 App & Server API Review | in-progress | ee42ee66-0c6b-4a8c-9fff-b9a417c9cb05 |
-| M3 Challenger 1 | teamwork_preview_challenger | Milestone 3 Telemetry & Diff Challenge | in-progress | ff6fb86d-03ba-42a8-aa33-448533e07947 |
-| M3 Challenger 2 | teamwork_preview_challenger | Milestone 3 API Hardening & Memory Search Challenge | in-progress | fb4e3b35-bafa-4db5-8ebc-7570001cceb5 |
-| M3 Forensic Auditor | teamwork_preview_auditor | Milestone 3 Forensic Integrity Audit | in-progress | 236b6f44-344c-4c0c-a5e8-cd144b4d62bb |
+| explorer_0 | teamwork_preview_explorer | Milestone 0: Exploration | completed | a454a890-af1d-4d67-9562-fde66859490a |
+| worker_1 | teamwork_preview_worker | Milestone 1: Curriculum Expansion | completed | 4461e37c-4884-4509-9a07-7ac979f45ef4 |
+| worker_2 | teamwork_preview_worker | Milestone 2: Simulation & Memory Core | completed | 4ea38e50-cfef-4741-83fa-c6476a3d99b3 |
+| worker_3 | teamwork_preview_worker | Milestone 3: Pedagogical Quality Audit | completed | d7b3e989-21d8-4d80-8474-04ee630c958e |
+| reviewer_1 | teamwork_preview_reviewer | Milestone 4: Code & Quality Review | completed | d3792533-8941-455b-92f5-8eab92e63b1f |
+| challenger_1 | teamwork_preview_challenger | Milestone 4: Adversarial Stress Test | completed | fdae3312-36d4-4b00-b1c1-66e88f9ba210 |
+| auditor_1 | teamwork_preview_auditor | Milestone 4: Forensic Integrity Audit | completed | b9bd6535-15ab-4af3-94ec-96c06b72cdbb |
 
 ## Succession Status
 - Succession required: no
 - Spawn count: 7 / 16
-- Pending subagents: 79a37df4-922e-4a4d-9ad9-dddc326b0c10, ee42ee66-0c6b-4a8c-9fff-b9a417c9cb05, ff6fb86d-03ba-42a8-aa33-448533e07947, fb4e3b35-bafa-4db5-8ebc-7570001cceb5, 236b6f44-344c-4c0c-a5e8-cd144b4d62bb
-- Predecessor: Gen 1
-- Successor: none
+- Pending subagents: none
+- Predecessor: none
+- Successor: not yet spawned
 
 ## Active Timers
-- Heartbeat cron: task-13
+- Heartbeat cron: not started
 - Safety timer: none
 
 ## Artifact Index
 - c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant/.agents/ORIGINAL_REQUEST.md — Original User Request
-- c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant/.agents/orchestrator/BRIEFING.md — Briefing & state
-- c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant/.agents/orchestrator/plan.md — Project Plan & Milestones
-- c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant/.agents/orchestrator/progress.md — Progress & Heartbeat
-- c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant/.agents/orchestrator/handoff.md — Soft Handoff Gen 1 to Gen 2
-

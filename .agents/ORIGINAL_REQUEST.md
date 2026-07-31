@@ -1,37 +1,29 @@
 # Original User Request
 
-## Initial Request — 2026-07-24T06:56:12Z
+## Initial Request — 2026-07-31T13:41:12Z
 
-# Teamwork Project Prompt
-
-Significant UI overhaul for MYRAA Desktop AI Assistant and integration of a secondary assistant persona named "Ria".
+Full training, automated evaluation, curriculum validation, and multi-agent exercise of Mike (the Cartoon Mouse Master AI Tutor) across Nursery, LKG, UKG, and Classes 1 to 8 in English, Hindi, and Hinglish.
 
 Working directory: c:/Users/ayush/OneDrive/Documents/MYRAA/myraa-ai-assistant
 Integrity mode: development
 
 ## Requirements
 
-### R1. Modernized Cyber-Glass UI & Assistant Selector
-Redesign the application layout in src/App.tsx and related components with a sleek cyber-glass aesthetic, glowing status indicators, particle backdrop, interactive audio visualizer, and a top navigation pill / sidebar allowing seamless switching between MYRAA and Ria.
+### R1. Complete Multi-Grade Educational Curriculum & Facts Store
+Verify and expand comprehensive educational datasets for Nursery, LKG, UKG, Primary (Classes 1-5), and Middle School (Classes 6-8) covering Math, Science, EVS, English Grammar, and Hindi Vyakaran.
 
-### R2. Dual Assistant Persona Engine (MYRAA & Ria)
-Integrate "Ria" as a co-assistant persona alongside MYRAA with distinct voice settings, system instructions, avatar/visual styling, and support for loading custom configuration paths from settings.
+### R2. Multi-Agent Educational Simulation & Tutor Assessment
+Simulate diverse student personas (Nursery toddlers, Class 3 slow learners, Class 8 algebra students speaking Hinglish) to exercise Mike's interactive diagnostic onboarding, adaptive pacing, and child psychology comprehension.
 
-### R3. Enhanced Interactive GenUI & Telemetry Panels
-Integrate rich visual panels including live system telemetry, code diff review, quick action launcher, and interactive memory dashboard into the main interface.
+### R3. Automated Pedagogical Quality Audit
+Run automated checks to ensure zero hallucination, polite & encouraging tone ("Shabaash!", "Arey वाह!"), step-by-step concept breakdown, and isolated memory persistence (memories_mike.json).
 
 ## Acceptance Criteria
 
-### Assistant Switching & State Management
-- [x] Top navigation bar features an intuitive selector pill to switch active assistant between MYRAA and Ria.
-- [x] System prompt and voice parameters dynamically switch when Ria is selected.
-- [x] Settings panel includes configurable assistant profiles and custom config path loading.
-
-### Visual & Interactive Overhaul
-- [x] Main window presents a cohesive cyber-glass UI with translucent backdrop blur, glowing borders, and particle backdrop.
-- [x] Core visualizer animates smoothly according to assistant state (idle, listening, speaking, processing).
-- [x] Telemetry and GenUI panels render cleanly with zero TypeScript or layout overflow errors.
-
-### Build Verification
-- [x] npx tsc --noEmit passes without TypeScript errors.
-- [x] Settings store and UI components properly wired and saved in local workspace.
+### Educational Capability & Simulation
+- [ ] Nursery, LKG, UKG curriculum verified with phonics, CVC words, counting 1-100, shapes, and Swar/Vyanjan.
+- [ ] Primary 1-5 curriculum verified with long division, fractions, solar system, digestive system, and grammar rules.
+- [ ] Middle School 6-8 curriculum verified with linear equations, Pythagoras theorem, physics motion/force, chemistry acids/bases, and active/passive voice.
+- [ ] Simulated student interactions confirm Mike performs 3-step diagnostic onboarding (grade, language preference, topic).
+- [ ] Simulated slow-learner interactions confirm Mike uses stories, gentle pacing, and enthusiastic praise.
+- [ ] All student memories and assessment states persist strictly in memories_mike.json with zero cross-contamination into MYRAA or Ria memory files.

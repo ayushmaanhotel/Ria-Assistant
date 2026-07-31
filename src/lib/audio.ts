@@ -243,6 +243,7 @@ export class MyraaAudioSession {
           this.micSourceNode.connect(this.micProcessorNode);
           this.micProcessorNode.connect(this.inputAudioCtx.destination);
 
+          let consecutiveHighRmsCount = 0;
           this.micProcessorNode.onaudioprocess = (e) => {
             if (this.currentState === "disconnected" || this.currentState === "connecting") return;
             
@@ -255,8 +256,16 @@ export class MyraaAudioSession {
                 sum += channelData[i] * channelData[i];
               }
               const rms = Math.sqrt(sum / channelData.length);
-              // Suppress speaker output feedback loop unless user intentionally speaks up
-              if (rms < 0.02) return;
+              // Suppress speaker output feedback loop unless user intentionally speaks up (RMS > 0.06)
+              if (rms < 0.06) {
+                consecutiveHighRmsCount = 0;
+                return;
+              }
+              consecutiveHighRmsCount++;
+              // Require at least 1 consecutive loud frame to confirm user interruption
+              if (consecutiveHighRmsCount < 1) return;
+            } else {
+              consecutiveHighRmsCount = 0;
             }
 
             const currentSampleRate = this.inputAudioCtx?.sampleRate || 16000;
@@ -314,12 +323,18 @@ export class MyraaAudioSession {
 
           // Turn complete
           if (data.type === "turnComplete") {
-            // Once Myraa completes speaking, change visual state back to listening
-            setTimeout(() => {
-              if (this.activeSources.length === 0 && this.currentState === "speaking") {
-                this.setState("listening");
+            // Once Myraa completes speaking and all scheduled audio chunks finish playing, change state back to listening
+            const checkCompletion = () => {
+              const now = this.outputAudioCtx?.currentTime || 0;
+              if (this.activeSources.length === 0 && this.nextStartTime <= now + 0.1) {
+                if (this.currentState === "speaking") {
+                  this.setState("listening");
+                }
+              } else {
+                setTimeout(checkCompletion, 150);
               }
-            }, 100);
+            };
+            setTimeout(checkCompletion, 150);
           }
 
           // Handle live captions transcription
@@ -418,10 +433,9 @@ export class MyraaAudioSession {
 
       const currentTime = this.outputAudioCtx.currentTime;
       
-      // Gapless scheduler sync
+      // Gapless scheduler sync with 80ms jitter cushion to prevent buffer underrun drops and missing words
       if (this.nextStartTime < currentTime) {
-        // Start fresh: 30ms ahead to bridge schedule timing
-        this.nextStartTime = currentTime + 0.03;
+        this.nextStartTime = currentTime + 0.08;
       }
 
       source.start(this.nextStartTime);
@@ -434,8 +448,9 @@ export class MyraaAudioSession {
           this.activeSources.splice(index, 1);
         }
         
-        // If there are no more active play nodes, revert state back to listening
-        if (this.activeSources.length === 0 && this.currentState === "speaking") {
+        // Only revert state to listening when ALL active sources have finished playing and schedule is clear
+        const now = this.outputAudioCtx?.currentTime || 0;
+        if (this.activeSources.length === 0 && (this.nextStartTime <= now + 0.1) && this.currentState === "speaking") {
           this.setState("listening");
         }
       };

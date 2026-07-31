@@ -21,7 +21,7 @@ interface MyraaCoreVisualizerProps {
   themeColor: string; // Violet, crimson, emerald, celestial, gold, rose, charcoal
   activeEmotion?: MyraaEmotion;
   characterState: "idle" | "thinking" | "talking";
-  activeAssistant?: "MYRAA" | "Ria";
+  activeAssistant?: "MYRAA" | "Ria" | "Mike";
   characterZoom?: number;
   characterFit?: "contain" | "cover";
 }
@@ -328,7 +328,6 @@ export const MyraaCoreVisualizer: React.FC<MyraaCoreVisualizerProps> = ({
       const mouseCanvasX = mouseRef.current.x * width;
       const mouseCanvasY = mouseRef.current.y * height;
       const parallaxOffsetX = (mouseRef.current.x - 0.5) * 2;
-      const parallaxOffsetY = (mouseRef.current.y - 0.5) * 2;
 
       const baseScale = height / 440;
       const s = Math.max(0.95, Math.min(1.85, baseScale));
@@ -432,15 +431,10 @@ export const MyraaCoreVisualizer: React.FC<MyraaCoreVisualizerProps> = ({
 
         ctx.beginPath();
         if (p.tier === 2) {
-          // Dual stop radial glow for embers
           const vol = Math.max(0, isFinite(speechVolumeRef.current) ? speechVolumeRef.current : 0);
           const rad = p.size * s * (1 + vol * 0.8);
-          const outerRad = Math.max(0.1, isFinite(rad * 2) ? rad * 2 : 0.1);
-          const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, outerRad);
-          grad.addColorStop(0, `${primaryCSS}, ${safeAlpha(finalAlpha)})`);
-          grad.addColorStop(1, `${secondaryCSS}, 0)`);
-          ctx.fillStyle = grad;
-          ctx.arc(p.x, p.y, outerRad, 0, Math.PI * 2);
+          ctx.fillStyle = `${primaryCSS}, ${safeAlpha(finalAlpha)})`;
+          ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
         } else {
           ctx.fillStyle = p.tier === 3 
             ? `${secondaryCSS}, ${safeAlpha(finalAlpha * 0.9)})`
@@ -452,12 +446,15 @@ export const MyraaCoreVisualizer: React.FC<MyraaCoreVisualizerProps> = ({
 
       // Neural connection lines between nearby Tier 3 nodes when thinking
       if (isThinking) {
-        const tier3Nodes = particlesRef.current.filter((p) => p.tier === 3);
         ctx.lineWidth = 0.75;
-        for (let i = 0; i < tier3Nodes.length; i++) {
-          for (let j = i + 1; j < tier3Nodes.length; j++) {
-            const n1 = tier3Nodes[i];
-            const n2 = tier3Nodes[j];
+        const pts = particlesRef.current;
+        const len = pts.length;
+        for (let i = 0; i < len; i++) {
+          if (pts[i].tier !== 3) continue;
+          for (let j = i + 1; j < len; j++) {
+            if (pts[j].tier !== 3) continue;
+            const n1 = pts[i];
+            const n2 = pts[j];
             const dist = Math.hypot(n1.x - n2.x, n1.y - n2.y);
             if (dist < 85) {
               const alpha = (1 - dist / 85) * 0.35;
@@ -492,7 +489,7 @@ export const MyraaCoreVisualizer: React.FC<MyraaCoreVisualizerProps> = ({
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       {/* 1. Behind Overlay / Atmospheric Backlight Glow (Z-index 0) */}
       <div className="absolute inset-0 bg-transparent flex items-center justify-center pointer-events-none z-0">
-        <div className={`w-[520px] h-[520px] rounded-full blur-[140px] opacity-30 bg-gradient-to-tr transition-all duration-1000 ${
+        <div className={`w-[520px] h-[520px] rounded-full opacity-30 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.25),transparent_70%)] transition-all duration-1000 transform-gpu ${
           activeAssistant === "Ria" || themeColor === "violet" ? "from-purple-600/40 to-pink-600/10" :
           themeColor === "crimson" ? "from-rose-600/40 to-orange-600/10" :
           themeColor === "emerald" ? "from-emerald-600/40 to-teal-600/10" :
@@ -513,22 +510,23 @@ export const MyraaCoreVisualizer: React.FC<MyraaCoreVisualizerProps> = ({
           style={{ transform: `scale(${characterZoom / 100})` }}
         >
           {/* Subtle Outer Ambient Shadow Cast */}
-          <div className="absolute inset-0 rounded-3xl blur-[30px] opacity-15 bg-cyan-600/15 pointer-events-none mix-blend-screen" />
+          <div className="absolute inset-0 rounded-3xl opacity-15 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15),transparent_70%)] pointer-events-none transform-gpu" />
 
           {/* IDLE VIDEO */}
           <video
             key={`idle-${activeAssistant}`}
             ref={idleVideoRef}
-            src={activeAssistant === "Ria" ? "/assets/ria_idle.mp4" : "/assets/idle.mp4"}
+            src={activeAssistant === "Mike" ? "/api/media/mike-avatar" : activeAssistant === "Ria" ? "/assets/ria_idle.mp4" : "/assets/idle.mp4"}
             loop
             muted
             playsInline
             autoPlay
-            className={`absolute inset-0 w-full h-full object-contain rounded-3xl transition-opacity duration-700 ease-in-out ${
-              characterState === "idle" ? "opacity-100 z-10 animate-fade-in" : "opacity-0 z-0"
+            className={`absolute inset-0 w-full h-full ${characterFit === "cover" ? "object-cover" : "object-contain"} rounded-3xl transition-opacity duration-500 ease-in-out ${
+              characterState === "idle" ? "opacity-100 z-10 animate-fade-in" : "opacity-0 z-0 pointer-events-none"
             }`}
             style={{
-              objectPosition: "center center"
+              objectPosition: "center center",
+              display: characterState === "idle" ? "block" : "none"
             }}
             onError={() => handleVideoError("idle")}
           />
@@ -537,15 +535,16 @@ export const MyraaCoreVisualizer: React.FC<MyraaCoreVisualizerProps> = ({
           <video
             key={`thinking-${activeAssistant}`}
             ref={thinkingVideoRef}
-            src={activeAssistant === "Ria" ? "/assets/ria_thinking.mp4" : "/assets/thinking.mp4"}
+            src={activeAssistant === "Mike" ? "/api/media/mike-avatar" : activeAssistant === "Ria" ? "/assets/ria_thinking.mp4" : "/assets/thinking.mp4"}
             loop
             muted
             playsInline
-            className={`absolute inset-0 w-full h-full object-contain rounded-3xl transition-opacity duration-700 ease-in-out ${
-              characterState === "thinking" ? "opacity-100 z-10 animate-fade-in" : "opacity-0 z-0"
+            className={`absolute inset-0 w-full h-full ${characterFit === "cover" ? "object-cover" : "object-contain"} rounded-3xl transition-opacity duration-500 ease-in-out ${
+              characterState === "thinking" ? "opacity-100 z-10 animate-fade-in" : "opacity-0 z-0 pointer-events-none"
             }`}
             style={{
-              objectPosition: "center center"
+              objectPosition: "center center",
+              display: characterState === "thinking" ? "block" : "none"
             }}
             onError={() => handleVideoError("thinking")}
           />
@@ -554,15 +553,16 @@ export const MyraaCoreVisualizer: React.FC<MyraaCoreVisualizerProps> = ({
           <video
             key={`talking-${activeAssistant}`}
             ref={talkingVideoRef}
-            src={activeAssistant === "Ria" ? "/assets/ria_talking.mp4" : "/assets/talking.mp4"}
+            src={activeAssistant === "Mike" ? "/api/media/mike-avatar" : activeAssistant === "Ria" ? "/assets/ria_talking.mp4" : "/assets/talking.mp4"}
             loop
             muted
             playsInline
-            className={`absolute inset-0 w-full h-full object-contain rounded-3xl transition-opacity duration-700 ease-in-out ${
-              characterState === "talking" ? "opacity-100 z-10 animate-fade-in" : "opacity-0 z-0"
+            className={`absolute inset-0 w-full h-full ${characterFit === "cover" ? "object-cover" : "object-contain"} rounded-3xl transition-opacity duration-500 ease-in-out ${
+              characterState === "talking" ? "opacity-100 z-10 animate-fade-in" : "opacity-0 z-0 pointer-events-none"
             }`}
             style={{
-              objectPosition: "center center"
+              objectPosition: "center center",
+              display: characterState === "talking" ? "block" : "none"
             }}
             onError={() => handleVideoError("talking")}
           />

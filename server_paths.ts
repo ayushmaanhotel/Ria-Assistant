@@ -19,6 +19,9 @@ import path from "path";
 /** Writable per-user data directory. Falls back to cwd in development. */
 export const DATA_DIR: string = process.env.MYRAA_DATA_DIR || process.cwd();
 
+/** App root directory for shipped read-only assets and code. Falls back to cwd in development. */
+export const appRoot: string = process.env.MYRAA_APP_ROOT || process.cwd();
+
 try {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 } catch {

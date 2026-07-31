@@ -1,0 +1,67 @@
+{
+  "level": "Middle School Education",
+  "grades": ["Class 6", "Class 7", "Class 8"],
+  "modules": [
+    {
+      "subject": "Mathematics",
+      "topics": [
+        {
+          "grade": "Class 6-7",
+          "title": "Integers, Rational Numbers, Basic Algebra, Linear Equations, Ratios & Percentages",
+          "content": "Integers (+ve, -ve, 0) and number line representation. Sign rules for multiplication and division: (-) x (-) = (+), (-) x (+) = (-), (+) x (-) = (-). Rational numbers (p/q form, q != 0). Algebraic expressions: terms, coefficients, variables. Linear equations in one variable (e.g., ax + b = c; 2x + 5 = 15 => 2x = 10 => x = 5). Ratios, Proportions, Percentage calculation, Profit & Loss formulas.",
+          "explanation_strategy": "Use the balance scale analogy for solving equations (whatever operation you do to left side, do to right side)."
+        },
+        {
+          "grade": "Class 8",
+          "title": "Square & Cube Roots, Exponents & Powers, Pythagoras Theorem, Mensuration, Factorisation",
+          "content": "Pythagoras Theorem: In a right-angled triangle, hypotenuse squared equals sum of squares of base and perpendicular (a^2 + b^2 = c^2). Pythagorean triplets (3-4-5, 5-12-13, 8-15-17). Exponents & Powers laws: 1. a^m x a^n = a^(m+n), 2. a^m / a^n = a^(m-n), 3. (a^m)^n = a^(mn), 4. a^0 = 1, 5. a^(-n) = 1/a^n. Standard form / scientific notation. Mensuration 2D & 3D: Area of Trapezium = 1/2 x (a + b) x h, Area of Rhombus = 1/2 x d1 x d2. Surface Area & Volume: Cube (Surface Area = 6a^2, Volume = a^3), Cuboid (Surface Area = 2(lb + bh + hl), Volume = lbh), Cylinder (Curved Surface Area = 2pi*r*h, Total Surface Area = 2pi*r(r+h), Volume = pi*r^2*h). Factorisation using identities: a^2 - b^2 = (a-b)(a+b), (a+b)^2 = a^2 + 2ab + b^2.",
+          "explanation_strategy": "Derive formulas visually before asking the student to solve practice problems."
+        }
+      ]
+    },
+    {
+      "subject": "Physics & Physical Sciences",
+      "topics": [
+        {
+          "grade": "Class 6-8",
+          "title": "Motion, Equations of Motion, Force, Pressure, Light, Reflection, Sound, Electricity",
+          "content": "Physics Motion & Kinematics: Distance vs Displacement, Speed = distance/time, Velocity, Acceleration a = (v - u) / t. First Equation of Motion: v = u + at (where v is final velocity, u is initial velocity, a is acceleration, t is time). Second equation: s = ut + 1/2at^2. Third equation: v^2 = u^2 + 2as. Types of motion: Rectilinear, Circular, Periodic. Force & Newton's Second Law: Force = Mass x Acceleration (F = ma), unit Newton (N). Pressure: Pressure = Force / Area (P = F / A), unit Pascal (Pa). Light travels in straight lines; Reflection laws: Angle of incidence = Angle of reflection (Angle i = Angle r). Sound requires a medium to travel (cannot travel in vacuum). Electric current, circuits, conductors vs insulators.",
+          "explanation_strategy": "Give everyday physics examples like pushing a heavy box (F=ma), high heel vs flat shoe pressure (P=F/A), and rocket acceleration (v=u+at)."
+        }
+      ]
+    },
+    {
+      "subject": "Chemistry",
+      "topics": [
+        {
+          "grade": "Class 6-8",
+          "title": "Matter & Composition, Elements, Compounds, Mixtures, Physical vs Chemical Changes, Acids, Bases, pH & Litmus Indicators",
+          "content": "Atoms & Molecules. Elements (pure substances like Gold, Oxygen H2, Carbon). Compounds (chemically bonded elements like Water H2O, Carbon Dioxide CO2). Mixtures (homogeneous & heterogeneous). Acids: pH < 7, sour taste, release H+ ions, turn blue litmus paper red (e.g., Hydrochloric acid HCl, Sulphuric acid H2SO4, Citric acid). Bases: pH > 7, bitter taste, soapy feel, release OH- ions, turn red litmus paper blue (e.g., Sodium Hydroxide NaOH, Baking soda). pH scale ranges from 0 to 14 (pH 7 is neutral). Indicators: Litmus paper, Phenolphthalein (colorless in acid, pink in base), Methyl Orange, Turmeric. Neutralization Reaction: Acid + Base -> Salt + Water + Heat.",
+          "explanation_strategy": "Use kitchen chemistry examples like lemon juice (acid), baking soda (base), turmeric indicator, and salt water."
+        }
+      ]
+    },
+    {
+      "subject": "Biology & Life Sciences",
+      "topics": [
+        {
+          "grade": "Class 6-8",
+          "title": "Cell Structure & Function, Plant vs Animal Cell, Photosynthesis, Microorganisms, Reproduction",
+          "content": "Biology Cell Structure & Function: Cell is fundamental structural unit of life. Key organelles: Cell membrane, Cytoplasm, Nucleus, Mitochondria (powerhouse). Plant cell vs Animal cell: Plant cells have a cell wall (cellulose), chloroplasts, and a large central vacuole; animal cells do not have cell walls or chloroplasts. Photosynthesis: Process of converting light energy into chemical energy. Balanced chemical equation: 6CO2 + 6H2O -> C6H12O6 + 6O2 (Carbon dioxide + Water + Sunlight/Chlorophyll -> Glucose + Oxygen). Stomata role in gas exchange. Microorganisms: Bacteria, Fungi, Protozoa, Algae, Viruses. Useful vs Harmful microbes.",
+          "explanation_strategy": "Diagrammatic mental models, step-by-step biological processes, and chemical equations in English and Hinglish."
+        }
+      ]
+    },
+    {
+      "subject": "English & Communication Skills",
+      "topics": [
+        {
+          "grade": "Class 6-8",
+          "title": "Active & Passive Voice, Direct & Indirect Speech, Essay Writing, Reading Comprehension, Advanced Grammar",
+          "content": "English Grammar & Communication: Active & Passive Voice: Subject performs action (Active: 'The dog chased the cat.') vs Subject receives action (Passive: 'The cat was chased by the dog.'). Transformation rules: Subject-Object swap, auxiliary verb, past participle (V3). Direct & Indirect Speech: Direct speech quotes exact words ('He said, \"I am writing.\"') vs Indirect speech reports without quotes ('He said that he was writing.'). Transformation rules: reporting verb change (said to -> told), quotation removal, tense shift back (present simple -> past simple), pronoun and time word shifts (now -> then, today -> that day). Subject-Verb Agreement. Structure of an Essay: Introduction, Body Paragraphs, Conclusion. Formal & Informal Letter writing formats.",
+          "explanation_strategy": "Practice real-time sentence transformation games with the student in interactive step-by-step prompts."
+        }
+      ]
+    }
+  ]
+}

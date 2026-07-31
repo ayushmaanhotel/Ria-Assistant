@@ -1,17 +1,35 @@
+# Node / Dependencies
 node_modules/
 build/
 dist/
 coverage/
-.DS_Store
-*.log
+
+# Environment & Configs
 .env*
 !.env.example
+settings.json
+
+# User Memory Cores & Personal Notion Datasets (STRICT PRIVACY)
+memories*.json
+knowledge_base/notion*.json
+extract_notion_dataset.js
+
+# Binary distributions & Virtual Envs
 Python311-arm64/
 myraa_venv/
 venv/
+agent_dist/
 __pycache__/
 *.pyc
-data/
+
+# Logs & Temp
 logs/
+*.log
 *.tmp
+
+# OS & System
+.DS_Store
+Thumbs.db
+.agents/
+
 

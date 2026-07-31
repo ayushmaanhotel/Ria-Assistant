@@ -1,0 +1,68 @@
+{
+  "level": "Primary School Education",
+  "grades": ["Class 1", "Class 2", "Class 3", "Class 4", "Class 5"],
+  "modules": [
+    {
+      "subject": "Mathematics",
+      "topics": [
+        {
+          "grade": "Class 1-2",
+          "title": "Place Value, Addition & Subtraction with Regrouping, Multiplication Tables (1 to 10)",
+          "content": "Place value: Ones, Tens, Hundreds. Addition with regrouping (carrying over tens e.g., 48 + 37 = 85). Subtraction with regrouping (borrowing from tens e.g., 52 - 28 = 24). Memorizing multiplication tables 1 to 10 with mental math tricks. Telling time on analog clock (hours and half hours). Money coins and currency notes recognition.",
+          "explanation_strategy": "Relate math to buying chocolates or toy cars in Hinglish ('Agar tumhare paas 52 coins hain aur 28 spend kar diye...')."
+        },
+        {
+          "grade": "Class 3-4",
+          "title": "Multiplication, Long Division Step-by-Step, Fractions & Decimals Intro, Perimeter & Area",
+          "content": "3-digit multiplication. Long division step-by-step algorithm: 1. Divide (how many times divisor fits into dividend part), 2. Multiply (divisor by quotient digit), 3. Subtract (product from dividend part), 4. Bring down (next digit of dividend). Checking formula: Dividend = (Divisor x Quotient) + Remainder. Fractions: Proper fractions (2/5), improper fractions (7/4), mixed fractions (1 3/4), equivalent fractions (1/2 = 2/4 = 3/6). Intro to decimals. Perimeter and Area: Perimeter of rectangle = 2 x (length + breadth), Perimeter of square = 4 x side. Area of rectangle = length x breadth (l x b), Area of square = side x side (s^2). Units in cm^2 and m^2.",
+          "explanation_strategy": "Slice a pizza to explain 1/2, 1/4, 3/4 fractions visually, and draw rectangles to derive perimeter vs area."
+        },
+        {
+          "grade": "Class 5",
+          "title": "LCM & HCF, Large Numbers, Decimals, Percentages, Unitary Method",
+          "content": "Prime factorization, Lowest Common Multiple (LCM), Highest Common Factor (HCF / GCD). Converting fractions to decimals and percentages. Unitary method: 1. Find the cost or value of 1 single unit by division (Unit Value = Total / Quantity), 2. Multiply the unit value by the required quantity to find the total answer (Total = Unit Value x Quantity). Real-life word problems.",
+          "explanation_strategy": "Walk step-by-step through unitary method word problems using everyday shopping stories."
+        }
+      ]
+    },
+    {
+      "subject": "Science & EVS (Environmental Studies)",
+      "topics": [
+        {
+          "grade": "Class 1-3",
+          "title": "Living vs Non-Living Things, Plants & Animals, Weather & Seasons",
+          "content": "Living vs Non-Living: Living things breathe, grow, move, reproduce, need food and water, respond to stimuli, and die. Non-living things do not. Parts of a plant: Root, Stem, Leaf, Flower, Fruit. Intro to photosynthesis. Seasons: Summer, Rainy (Monsoon), Winter, Spring.",
+          "explanation_strategy": "Ask student what plants need to grow (sunlight, water, soil, air) in English and Hindi."
+        },
+        {
+          "grade": "Class 4-5",
+          "title": "Human Digestive System & Respiratory System, States of Matter, Solar System, Ecosystems",
+          "content": "Human Digestive System: Mouth (teeth & saliva breakdown) -> Oesophagus / Food pipe -> Stomach (digestive juices) -> Small Intestine (nutrient absorption into blood) -> Large Intestine (water absorption) -> Anus (waste elimination). Human Respiratory System: Nasal cavity / Nose -> Trachea / Windpipe -> Bronchi -> Lungs (Alveoli take in Oxygen O2 and release Carbon Dioxide CO2). States of Matter: Solid (fixed shape and volume, tightly packed particles), Liquid (fixed volume, takes container shape, loosely packed), Gas (no fixed shape or volume, freely moving particles). Phase changes: melting, freezing, evaporation, condensation. Solar System: Sun (central star), 8 planets in order (Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune), Earth's rotation (causes day/night) vs revolution (causes seasons).",
+          "explanation_strategy": "Use fun mnemonics like 'My Very Energetic Mother Just Served Us Noodles' for 8 planets, and trace food through the digestive tract."
+        }
+      ]
+    },
+    {
+      "subject": "English Grammar & Vocabulary",
+      "topics": [
+        {
+          "grade": "Class 1-5",
+          "title": "Nouns, Pronouns, Verbs, Adjectives, Adverbs, Tenses, Punctuation",
+          "content": "English Grammar Rules: Nouns (naming words for person, place, animal, thing; proper, common, collective). Pronouns (words replacing nouns: I, he, she, it, they, we, you). Verbs (action words: run, eat, jump; helping verbs: is, am, are, was, were, has, have). Tenses: Simple Present, Simple Past, Simple Future, Present Continuous, Past Continuous. Adjectives (describing words: big, fast, green). Adverbs (modifying verbs: quickly, loudly). Punctuation: Capital letters, full stop, question mark, comma, exclamation mark.",
+          "explanation_strategy": "Play 'Find the Noun / Action Verb' in simple sentences with interactive quizzes."
+        }
+      ]
+    },
+    {
+      "subject": "Hindi Vyakaran (हिंदी व्याकरण)",
+      "topics": [
+        {
+          "grade": "Class 1-5",
+          "title": "संज्ञा, सर्वनाम, क्रिया, विशेषण, लिंग, वचन, विलोम शब्द, पर्यायवाची शब्द",
+          "content": "Hindi Vyakaran (हिंदी व्याकरण नियम): 1. संज्ञा (Sangya / Noun): किसी व्यक्ति, वस्तु, स्थान या भाव के नाम को संज्ञा कहते हैं। भेदों के उदाहरण - व्यक्तिवाचक (राम, दिल्ली), जातिवाचक (लड़का, नदी), भाववाचक (मिठास, बचपन)। 2. सर्वनाम (Sarvanam / Pronoun): संज्ञा के स्थान पर प्रयोग होने वाले शब्द (मैं, तुम, वह, हम, यह)। 3. क्रिया (Kriya / Verb): जिस शब्द से किसी कार्य के करने या होने का बोध हो (पढ़ना, लिखना, खाना, दौड़ना)। सकर्मक और अकर्मक क्रिया। 4. विशेषण (Visheshaan / Adjective): संज्ञा या सर्वनाम की विशेषता बताने वाले शब्द (बड़ा, सुंदर, चार, मीठा)। 5. लिंग (Ling): स्त्रीलिंग (लड़की, माता) व पुल्लिंग (लड़का, पिता)। 6. वचन (Vachan): एकवचन (किताब) व बहुवचन (किताबें)। 7. विलोम शब्द (Vilom / Opposites): दिन-रात, सच-झूठ, नया-पुराना। 8. पर्यायवाची शब्द (Paryayvachi / Synonyms): जल (पानी, नीर), सूर्य (सूरज, दिनकर)।",
+          "explanation_strategy": "Engage in friendly Hinglish dialogue and quiz games: 'Sangya matlab Noun! Chalo batao 'Delhi' kaunsi Sangya hai?'"
+        }
+      ]
+    }
+  ]
+}

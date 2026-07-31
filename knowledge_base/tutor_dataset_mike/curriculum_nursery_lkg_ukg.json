@@ -1,0 +1,66 @@
+{
+  "level": "Early Childhood Education",
+  "grades": ["Nursery", "LKG", "UKG"],
+  "modules": [
+    {
+      "subject": "English & Literacy",
+      "topics": [
+        {
+          "title": "Alphabet Recognition & Phonics",
+          "content": "Phonics sounds and letter recognition for all A-Z letters: A for Apple (/æ/), B for Ball (/b/), C for Cat (/k/), D for Dog (/d/), E for Elephant (/e/), F for Fish (/f/), G for Grapes (/ɡ/), H for House (/h/), I for Ice-cream (/aɪ/), J for Juice (/dʒ/), K for Kite (/k/), L for Lion (/l/), M for Monkey (/m/), N for Nest (/n/), O for Orange (/ɒ/), P for Parrot (/p/), Q for Queen (/kw/), R for Rabbit (/r/), S for Sun (/s/), T for Tiger (/t/), U for Umbrella (/ʌ/), V for Van (/v/), W for Watch (/w/), X for Xylophone (/ks/), Y for Yak (/j/), Z for Zebra (/z/). Uppercase (A-Z) and lowercase (a-z) letter matching.",
+          "pedagogy_tip": "Use fun sound effects (like 'A-a-apple!', 'B-b-ball!'), rhythm, and mouse gestures in English and Hinglish."
+        },
+        {
+          "title": "Sight Words & 3-Letter Words (CVC)",
+          "content": "3-letter CVC words (Consonant-Vowel-Consonant): short 'a' (cat, mat, rat, bat, sat); short 'e' (pen, ten, hen, red, bed); short 'i' (pin, tin, bin, sit, fit); short 'o' (top, dog, log, pot, mop); short 'u' (tub, sun, bun, run, cup). Basic sight words: the, is, in, at, on, it, my, see.",
+          "pedagogy_tip": "Break into sound blending: c - a - t = cat! Ask student to pronounce each letter sound slowly."
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics & Numeracy",
+      "topics": [
+        {
+          "title": "Numbers 1 to 100 & Counting",
+          "content": "Counting objects 1 to 20, numeral identification 1-100, skip counting by 2s, 5s, and 10s, concept of zero (0 means none/empty), before/after/between numbers, big vs small, more vs less.",
+          "pedagogy_tip": "Ask student to count imaginary cheese slices or stars! Speak in Hinglish: 'Chalo count karte hain 1 se 100 tak!'"
+        },
+        {
+          "title": "Basic Shapes & Colors",
+          "content": "Basic Shapes: Circle (round like sun), Square (4 equal sides), Triangle (3 sides), Rectangle (2 long 2 short sides), Star (5 points), Heart, Oval (egg shape), Diamond (rhombus). Primary & Secondary Colors: Red, Blue, Yellow, Green, Orange, Purple, Pink, Black, White, Brown.",
+          "pedagogy_tip": "Ask: 'Can you find something round or Red around you right now?'"
+        },
+        {
+          "title": "Simple Addition & Subtraction (1-10)",
+          "content": "Visual addition using objects (2 apples + 3 apples = 5 apples). Visual subtraction (5 balloons - 2 pop = 3 left). Counting forward for addition and backward for subtraction.",
+          "pedagogy_tip": "Use fingers or objects in story-telling form."
+        }
+      ]
+    },
+    {
+      "subject": "General Knowledge & Environmental Studies",
+      "topics": [
+        {
+          "title": "Animals, Birds & Insects",
+          "content": "Domestic/Farm Animals: Cow, Dog, Cat, Goat, Horse, Sheep. Wild Animals: Lion, Tiger, Elephant, Bear, Zebra, Giraffe. Birds: Peacock (National bird), Sparrow, Parrot, Eagle, Pigeon. Water Animals: Fish, Whale, Dolphin, Octopus. Insects: Butterfly, Ant, Honeybee. Animal sounds and homes (Dog lives in kennel, Lion in den).",
+          "pedagogy_tip": "Make cute animal sounds together with the student! 'What sound does a dog make? Woof woof!'"
+        },
+        {
+          "title": "Body Parts & 5 Senses",
+          "content": "Human Body Parts & 5 Senses: Eyes (see/sight), Ears (hear/sound), Nose (smell/smelling), Tongue (taste/tasting), Skin (touch/feeling). Head, Shoulders, Knees, Toes, Hands, Fingers, Legs, Feet, Teeth, Hair.",
+          "pedagogy_tip": "Sing the 'Head, Shoulders, Knees and Toes' rhythm."
+        }
+      ]
+    },
+    {
+      "subject": "Hindi Basics (हिंदी प्रवेश)",
+      "topics": [
+        {
+          "title": "Swar & Vyanjan (स्वर और व्यंजन)",
+          "content": "Hindi Swar (स्वर अ से अः): अ (अनार), आ (आम), इ (इमली), ई (ईख), उ (उल्लू), ऊ (ऊन), ऋ (ऋषि), ए (एड़ी), ऐ (ऐनक), ओ (ओखली), औ (औरत), अं (अंगूर), अः (अहा)। Hindi Vyanjan (व्यंजन क से ज्ञ): क (कबूतर), ख (खरगोश), ग (गमला), घ (घड़ी), ङ | च (चम्मच), छ (छाता), ज (जहाज), झ (झंडा), ञ | ट (टमाटर), ठ (ठठेरा), ड (डमरू), ढ (ढोलक), ण | त (तबला), थ (थर्मस), द (दरवाजा), ध (धनुष), न (नल) | प (पतंग), फ (फल), ब (बकरी), भ (भालू), म (मछली) | य (यज्ञ), र (रथ), ल (लट्टू), व (वक) | श (शलजम), ष (षट्कोण), स (सपेरा), ह (हाथी) | क्ष (क्षत्रिय), त्र (त्रिशूल), ज्ञ (ज्ञानी)। Complete pronunciation in Hindi & Hinglish.",
+          "pedagogy_tip": "Teach with affectionate Hindi phrases like 'शाबाश!', 'अरे वाह!', 'फिर से बोलो!' and interactive Hinglish repetition."
+        }
+      ]
+    }
+  ]
+}

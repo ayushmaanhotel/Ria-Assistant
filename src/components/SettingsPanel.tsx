@@ -18,6 +18,10 @@ import {
   Loader2,
   ShieldCheck,
   ExternalLink,
+  Tv,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -349,10 +353,10 @@ export function SettingsPanel({ isOpen, onClose, settings, onChange, themeColor 
                     Active Persona Selection
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => onChange({ activeAssistant: "MYRAA" })}
-                      className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                         settings.activeAssistant === "MYRAA"
                           ? "border-cyan-400 bg-cyan-400/10 text-cyan-200"
                           : "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10"
@@ -363,13 +367,13 @@ export function SettingsPanel({ isOpen, onClose, settings, onChange, themeColor 
                         MYRAA
                       </div>
                       <div className="text-[9px] font-mono text-slate-400 mt-1">
-                        Primary System &amp; Desktop Agent
+                        Anime Companion
                       </div>
                     </button>
 
                     <button
                       onClick={() => onChange({ activeAssistant: "Ria" })}
-                      className={`p-3.5 rounded-xl border text-left transition cursor-pointer ${
+                      className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                         settings.activeAssistant === "Ria"
                           ? "border-purple-400 bg-purple-400/10 text-purple-200"
                           : "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10"
@@ -380,9 +384,106 @@ export function SettingsPanel({ isOpen, onClose, settings, onChange, themeColor 
                         Ria
                       </div>
                       <div className="text-[9px] font-mono text-slate-400 mt-1">
-                        Warm &amp; Empathetic Co-Assistant
+                        Empathetic Co-Assistant
                       </div>
                     </button>
+
+                    <button
+                      onClick={() => onChange({ activeAssistant: "Mike" })}
+                      className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                        settings.activeAssistant === "Mike"
+                          ? "border-amber-400 bg-amber-400/10 text-amber-200"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10"
+                      }`}
+                    >
+                      <div className="font-mono font-bold text-xs flex items-center gap-1.5">
+                        <Tv size={14} className="text-amber-400" />
+                        Mike
+                      </div>
+                      <div className="text-[9px] font-mono text-slate-400 mt-1">
+                        Cartoon Mouse
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Camera Framing & Avatar Zoom Settings */}
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 pt-2 border-t border-white/5">
+                    Camera & Visual Framing
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-white/10 bg-white/5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Maximize2 size={14} className="text-cyan-400" />
+                        <div>
+                          <div className="text-xs font-mono font-bold text-white">Framing Mode</div>
+                          <div className="text-[9px] font-mono text-slate-400">Wide Shot (Full Character) vs Close Crop (Face Focus)</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 p-1 rounded-lg bg-black/40 border border-white/10">
+                        <button
+                          onClick={() => onChange({ characterFit: "contain" })}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-mono font-bold transition cursor-pointer ${
+                            (settings.characterFit ?? "contain") === "contain"
+                              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          WIDE SHOT
+                        </button>
+                        <button
+                          onClick={() => onChange({ characterFit: "cover" })}
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-mono font-bold transition cursor-pointer ${
+                            (settings.characterFit ?? "contain") === "cover"
+                              ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
+                              : "text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          CLOSE CROP
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ZoomIn size={14} className="text-purple-400" />
+                        <div>
+                          <div className="text-xs font-mono font-bold text-white">Avatar Scale Zoom</div>
+                          <div className="text-[9px] font-mono text-slate-400">Adjust video scale ({settings.characterZoom ?? 85}%)</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const cur = settings.characterZoom ?? 85;
+                            onChange({ characterZoom: Math.max(40, cur - 10) });
+                          }}
+                          className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition cursor-pointer"
+                          title="Zoom Out"
+                        >
+                          <ZoomOut size={12} />
+                        </button>
+                        <input
+                          type="range"
+                          min="40"
+                          max="160"
+                          step="5"
+                          value={settings.characterZoom ?? 85}
+                          onChange={(e) => onChange({ characterZoom: parseInt(e.target.value) })}
+                          className="w-24 accent-cyan-400 cursor-pointer"
+                        />
+                        <button
+                          onClick={() => {
+                            const cur = settings.characterZoom ?? 85;
+                            onChange({ characterZoom: Math.min(160, cur + 10) });
+                          }}
+                          className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition cursor-pointer"
+                          title="Zoom In"
+                        >
+                          <ZoomIn size={12} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   {/* MYRAA Persona Configuration */}
@@ -517,6 +618,44 @@ export function SettingsPanel({ isOpen, onClose, settings, onChange, themeColor 
                       </div>
                     </div>
                   )}
+
+                  {/* Mike Persona Configuration */}
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 pt-3 border-t border-white/5">
+                    Mike Persona Configuration
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-mono tracking-wider text-slate-300 uppercase">
+                      Mike Voice Model
+                    </label>
+                    <select
+                      value={settings.mikeVoice || "Fenrir"}
+                      onChange={(e) => onChange({ mikeVoice: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-sm text-white font-mono focus:outline-none focus:border-amber-400/50 transition cursor-pointer"
+                    >
+                      <option value="Fenrir">Fenrir (Clear / Animated)</option>
+                      <option value="Puck">Puck (Friendly / Playful)</option>
+                      <option value="Aoede">Aoede (Expressive)</option>
+                      <option value="Kore">Kore (Warm)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-mono tracking-wider text-amber-300 uppercase flex items-center justify-between">
+                      <span>Mike System Prompt (Cartoon Mouse Persona)</span>
+                      <span className="text-[8px] text-amber-400/80 lowercase">Supreme Law</span>
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={settings.mikeSystemPrompt || ""}
+                      onChange={(e) => onChange({ mikeSystemPrompt: e.target.value })}
+                      placeholder="Define Mike's cartoon mouse system prompt here..."
+                      className="w-full px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-950/20 text-xs text-white font-mono focus:outline-none focus:border-amber-400 transition resize-y min-h-[90px]"
+                    />
+                    <span className="text-[8px] text-slate-400 uppercase font-mono">
+                      Mike's independent cartoon mouse constitution — isolated memory core: memories_mike.json
+                    </span>
+                  </div>
                 </div>
               )}
 
