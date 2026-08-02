@@ -60,8 +60,29 @@ function readSecrets(): Secrets {
 export function getGeminiApiKey(): string | undefined {
   const stored = readSecrets().geminiApiKey?.trim();
   if (stored) return stored;
-  const env = process.env.GEMINI_API_KEY?.trim();
-  return env || undefined;
+
+  const envKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY)?.trim();
+  if (envKey) return envKey;
+
+  // Fallback: Check .env in appRoot or cwd
+  try {
+    const envPaths = [
+      path.join(appRoot, ".env"),
+      path.join(process.cwd(), ".env"),
+      path.join(DATA_DIR, ".env")
+    ];
+    for (const p of envPaths) {
+      if (fs.existsSync(p)) {
+        const content = fs.readFileSync(p, "utf-8");
+        const match = content.match(/(?:GEMINI_API_KEY|GOOGLE_API_KEY|GOOGLE_GENAI_API_KEY)\s*=\s*["']?([^"'\r\n]+)/);
+        if (match && match[1]?.trim()) {
+          return match[1].trim();
+        }
+      }
+    }
+  } catch {}
+
+  return undefined;
 }
 
 /** Whether any usable key is configured (without revealing it). */

@@ -1676,9 +1676,21 @@ async function startServer() {
       let dialogueHistory: DialogueTurn[] = [...recentTurns];
       let currentModelResponseText = "";
       
-      const targetLiveModel = process.env.GEMINI_LIVE_MODEL || "gemini-2.0-flash-exp";
-      const session = await ai.live.connect({
-        model: targetLiveModel,
+      const candidateModels = [
+        process.env.GEMINI_LIVE_MODEL,
+        "gemini-2.0-flash-exp",
+        "gemini-2.0-flash-realtime-exp",
+        "models/gemini-2.0-flash-exp"
+      ].filter(Boolean) as string[];
+
+      let session: any = null;
+      let lastLiveError: any = null;
+
+      for (const modelCandidate of candidateModels) {
+        try {
+          console.log(`[Live Session] Connecting to Gemini Live with model ${modelCandidate}...`);
+          session = await ai.live.connect({
+            model: modelCandidate,
         config: {
           responseModalities: [Modality.AUDIO, Modality.TEXT],
           speechConfig: {
@@ -2469,8 +2481,18 @@ async function startServer() {
             console.log("Gemini Live session closed");
             clientWs.send(JSON.stringify({ type: "status", status: "session_closed" }));
           }
+        }});
+        console.log(`[Live Session] Connected to Gemini Live model ${modelCandidate}!`);
+        break;
+        } catch (err: any) {
+          console.warn(`[Live Session] Model candidate ${modelCandidate} failed: ${err.message || err}. Trying next fallback...`);
+          lastLiveError = err;
         }
-      });
+      }
+
+      if (!session) {
+        throw new Error(`All Live model candidates failed. Last error: ${lastLiveError?.message || lastLiveError}`);
+      }
       
       clientWs.send(JSON.stringify({ type: "status", status: "connected" }));
       
