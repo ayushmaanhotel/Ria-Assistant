@@ -2434,7 +2434,10 @@ async function startServer() {
       clientWs.on("message", (rawMsg) => {
         try {
           const msg = JSON.parse(rawMsg.toString());
-          if (msg.audio) {
+          if (msg.type === "client_interrupt") {
+            console.log("[Client requested explicit interruption]");
+            clientWs.send(JSON.stringify({ type: "interrupted" }));
+          } else if (msg.audio) {
             session.sendRealtimeInput({
               audio: { data: msg.audio, mimeType: "audio/pcm;rate=16000" }
             });

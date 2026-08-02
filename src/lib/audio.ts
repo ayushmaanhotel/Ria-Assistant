@@ -107,6 +107,7 @@ export class MyraaAudioSession {
   
   private currentState: LiveState = "disconnected";
   private isActivated = false;
+  private isInterrupted = false;
 
   constructor(handlers: {
     onStateChange: (state: LiveState) => void;
@@ -134,6 +135,17 @@ export class MyraaAudioSession {
   }
 
   /**
+   * Manually triggers an immediate audio interruption.
+   * Stops all playing audio nodes and notifies the WebSocket server.
+   */
+  public interrupt() {
+    this.handleInterruption();
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: "client_interrupt" }));
+    }
+  }
+
+  /**
    * Pushes a compressed JPEG base64 screenshot frame directly to the live WebSocket server.
    */
   public sendVideoFrame(base64Data: string) {
@@ -146,6 +158,7 @@ export class MyraaAudioSession {
   public async connect() {
     if (this.isActivated) return;
     this.isActivated = true;
+    this.isInterrupted = false;
     this.setState("connecting");
 
     try {
@@ -247,28 +260,40 @@ export class MyraaAudioSession {
           this.micProcessorNode.connect(this.inputAudioCtx.destination);
 
           let consecutiveHighRmsCount = 0;
+          const RMS_INTERRUPT_THRESHOLD = 0.02; // sensitive to normal speech (0.015-0.04)
+          const BACKGROUND_NOISE_FLOOR = 0.008;
+
           this.micProcessorNode.onaudioprocess = (e) => {
             if (this.currentState === "disconnected" || this.currentState === "connecting") return;
             
             const channelData = e.inputBuffer.getChannelData(0);
 
-            // Avoid sending speaker echo back ONLY when the model is actively speaking
+            // Compute energy level
+            let sum = 0;
+            for (let i = 0; i < channelData.length; i++) {
+              sum += channelData[i] * channelData[i];
+            }
+            const rms = Math.sqrt(sum / channelData.length);
+
+            // Instant local barge-in detection when model is speaking
             if (this.currentState === "speaking") {
-              let sum = 0;
-              for (let i = 0; i < channelData.length; i++) {
-                sum += channelData[i] * channelData[i];
-              }
-              const rms = Math.sqrt(sum / channelData.length);
-              // Suppress speaker output feedback loop unless user intentionally speaks up (RMS > 0.06)
-              if (rms < 0.06) {
+              if (rms >= RMS_INTERRUPT_THRESHOLD) {
+                consecutiveHighRmsCount++;
+                if (consecutiveHighRmsCount >= 2) {
+                  console.log("[Audio] Instant speech barge-in detected! Stopping model playback.");
+                  this.interrupt();
+                }
+              } else {
                 consecutiveHighRmsCount = 0;
-                return;
+                if (rms < BACKGROUND_NOISE_FLOOR) {
+                  return;
+                }
               }
-              consecutiveHighRmsCount++;
-              // Require at least 1 consecutive loud frame to confirm user interruption
-              if (consecutiveHighRmsCount < 1) return;
             } else {
               consecutiveHighRmsCount = 0;
+              if (rms < BACKGROUND_NOISE_FLOOR) {
+                return;
+              }
             }
 
             const currentSampleRate = this.inputAudioCtx?.sampleRate || 16000;
@@ -307,6 +332,7 @@ export class MyraaAudioSession {
             if (data.status === "connecting_gemini") {
               // Wait for Gemini Live connection
             } else if (data.status === "connected") {
+              this.isInterrupted = false;
               this.setState("listening");
             } else if (data.status === "session_closed") {
               this.disconnect();
@@ -326,6 +352,7 @@ export class MyraaAudioSession {
 
           // Turn complete
           if (data.type === "turnComplete") {
+            this.isInterrupted = false;
             // Once Myraa completes speaking and all scheduled audio chunks finish playing, change state back to listening
             const checkCompletion = () => {
               const now = this.outputAudioCtx?.currentTime || 0;
@@ -342,6 +369,9 @@ export class MyraaAudioSession {
 
           // Handle live captions transcription
           if (data.type === "transcription") {
+            if (data.role === "user") {
+              this.isInterrupted = false;
+            }
             this.onTranscription(data.role, data.text);
           }
 
@@ -401,11 +431,13 @@ export class MyraaAudioSession {
   // Interruption triggers: stops all active audio players immediately
   private handleInterruption() {
     console.log("[Audio] Interruption signal received; flushing play logs.");
+    this.isInterrupted = true;
     
     // Stop all playing nodes
     this.activeSources.forEach((source) => {
       try {
         source.stop();
+        source.disconnect();
       } catch (err) {
         // Already finished or stopped
       }
@@ -419,6 +451,10 @@ export class MyraaAudioSession {
 
   // Direct raw PCM chunk scheduled playback at 24kHz
   private playAudioPCMChunk(base64Audio: string) {
+    if (this.isInterrupted) {
+      // Ignore trailing audio chunks from an interrupted model turn
+      return;
+    }
     if (!this.outputAudioCtx || !this.outputGainNode) return;
 
     if (this.outputAudioCtx.state === "suspended") {
