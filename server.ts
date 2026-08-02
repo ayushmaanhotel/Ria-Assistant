@@ -1676,7 +1676,7 @@ async function startServer() {
       let dialogueHistory: DialogueTurn[] = [...recentTurns];
       let currentModelResponseText = "";
       
-      const targetLiveModel = process.env.GEMINI_LIVE_MODEL || "gemini-3.1-flash-live-preview";
+      const targetLiveModel = process.env.GEMINI_LIVE_MODEL || "gemini-2.0-flash-exp";
       const session = await ai.live.connect({
         model: targetLiveModel,
         config: {

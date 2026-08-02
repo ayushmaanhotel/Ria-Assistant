@@ -749,6 +749,22 @@ export default function App() {
         </div>
       </header>
 
+      {/* ERROR / CONNECTION ALERT BANNER */}
+      {errorText && (
+        <div className="relative z-30 px-6 py-2.5 bg-rose-950/80 border-b border-rose-500/40 text-xs font-mono text-rose-200 flex items-center justify-between shadow-xl backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping shrink-0" />
+            <span>{errorText}</span>
+          </div>
+          <button
+            onClick={() => setErrorText(null)}
+            className="p-1 rounded hover:bg-white/10 text-rose-300 hover:text-white transition cursor-pointer text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* MAIN VIEWPORT BODY WITH LEFT SIDEBAR */}
       <div className="flex-1 flex min-h-0 relative z-20 px-4 py-3 gap-4">
         {/* LEFT VERTICAL SIDEBAR */}
