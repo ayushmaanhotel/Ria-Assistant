@@ -9,6 +9,8 @@ import * as fs from "fs";
 import { 
   loadMemories, 
   saveMemories, 
+  loadSessionSummary,
+  saveSessionSummary,
   formatSystemInstructionsWithMemories, 
   processConversationSlice,
   queryKnowledgeBase
@@ -661,12 +663,13 @@ async function startServer() {
       }
 
       const memories = await loadMemories(activeAssistant);
+      const sessionSummary = await loadSessionSummary(activeAssistant);
       let fullPrompt = basePrompt;
       if (extraContext) {
         fullPrompt += `\nREAL-TIME EXECUTION CONTEXT:\n${extraContext}\n`;
       }
 
-      const systemInstruction = formatSystemInstructionsWithMemories(fullPrompt, memories);
+      const systemInstruction = formatSystemInstructionsWithMemories(fullPrompt, memories, sessionSummary);
 
       let assistantResponseText = "";
       let createdFilename = "";
@@ -1645,8 +1648,9 @@ async function startServer() {
 
       // Load persistent recollections card and merge with extra custom memories
       const memories = await loadMemories(activeAssistant);
+      const sessionSummary = await loadSessionSummary(activeAssistant);
       const mergedMemories = [...memories, ...extraMemories];
-      const finalInstructions = formatSystemInstructionsWithMemories(basePrompt, mergedMemories);
+      const finalInstructions = formatSystemInstructionsWithMemories(basePrompt, mergedMemories, sessionSummary);
 
       // Track running transcription state for auto memory consolidation
       let dialogueHistory: { role: string; text: string }[] = [];
@@ -2288,10 +2292,16 @@ async function startServer() {
                 currentModelResponseText = "";
               }
 
+              // Window dialogue history to last 6 turns to avoid memory consolidation bottleneck
+              if (dialogueHistory.length > 6) {
+                dialogueHistory = dialogueHistory.slice(-6);
+              }
+
               if (dialogueHistory.length >= 2) {
+                const sliceToProcess = [...dialogueHistory];
                 (async () => {
                   try {
-                    const updated = await processConversationSlice(apiKey, dialogueHistory, activeAssistant);
+                    const updated = await processConversationSlice(apiKey, sliceToProcess, activeAssistant);
                     if (updated) {
                       clientWs.send(JSON.stringify({ type: "memory_sync", memories: updated }));
                     }
@@ -2335,6 +2345,16 @@ async function startServer() {
                         
                         // Sync immediately with the React client
                         clientWs.send(JSON.stringify({ type: "memory_sync", memories: mList }));
+
+                        // Inject realtime cognitive context update to Gemini Live session
+                        try {
+                          session.sendRealtimeInput({
+                            media: [],
+                            text: `[MEMORY CORE UPDATED]: New fact saved about user (${category}): "${text}". Use this context naturally.`
+                          } as any);
+                        } catch (e) {
+                          console.warn("[Memory] Realtime input injection failed:", e);
+                        }
                         
                         // Send success code back to live link
                         session.sendToolResponse({

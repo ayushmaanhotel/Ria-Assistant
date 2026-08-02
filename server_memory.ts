@@ -40,7 +40,32 @@ export async function loadMemories(assistant?: string): Promise<Memory[]> {
 // Per-file write lock map to ensure write order safety
 const writeLocks: Record<string, Promise<void>> = {};
 
+export function deduplicateMemories(memories: Memory[]): Memory[] {
+  const seen = new Set<string>();
+  const result: Memory[] = [];
+
+  for (const m of memories) {
+    if (!m || !m.text) continue;
+    const normalized = m.text.toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+    if (normalized.length < 3) continue;
+
+    let isDuplicate = false;
+    for (const existing of seen) {
+      if (existing === normalized || existing.includes(normalized) || normalized.includes(existing)) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    if (!isDuplicate) {
+      seen.add(normalized);
+      result.push(m);
+    }
+  }
+  return result;
+}
+
 export async function saveMemories(memories: Memory[], assistant?: string): Promise<void> {
+  const clean = deduplicateMemories(memories);
   const targetFile = getMemoryFile(assistant);
   const tempFile = `${targetFile}.tmp.${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   
@@ -53,9 +78,9 @@ export async function saveMemories(memories: Memory[], assistant?: string): Prom
   try {
     await previousLock;
     await fs.mkdir(path.dirname(targetFile), { recursive: true });
-    await fs.writeFile(tempFile, JSON.stringify(memories, null, 2), "utf-8");
+    await fs.writeFile(tempFile, JSON.stringify(clean, null, 2), "utf-8");
     fsSync.renameSync(tempFile, targetFile);
-    console.log(`[Memory] Saved ${memories.length} memories for ${assistant || "MYRAA"} successfully.`);
+    console.log(`[Memory] Saved ${clean.length} memories for ${assistant || "MYRAA"} successfully.`);
   } catch (error) {
     console.error(`[Memory] Error writing memory file for ${assistant || "MYRAA"}:`, error);
     try {
@@ -68,51 +93,86 @@ export async function saveMemories(memories: Memory[], assistant?: string): Prom
   }
 }
 
+function getSessionSummaryFile(assistant?: string): string {
+  const name = (assistant || "MYRAA").toLowerCase();
+  if (name === "ria") return dataFile("recent_session_ria.json");
+  if (name === "mike") return dataFile("recent_session_mike.json");
+  return dataFile("recent_session.json");
+}
+
+export async function loadSessionSummary(assistant?: string): Promise<string> {
+  const targetFile = getSessionSummaryFile(assistant);
+  try {
+    const data = await fs.readFile(targetFile, "utf-8");
+    const parsed = JSON.parse(data);
+    return parsed.summary || "";
+  } catch {
+    return "";
+  }
+}
+
+export async function saveSessionSummary(summary: string, assistant?: string): Promise<void> {
+  const targetFile = getSessionSummaryFile(assistant);
+  try {
+    await fs.mkdir(path.dirname(targetFile), { recursive: true });
+    await fs.writeFile(targetFile, JSON.stringify({ summary, timestamp: new Date().toISOString() }, null, 2), "utf-8");
+  } catch (e) {
+    console.error("[Memory] Error saving session summary:", e);
+  }
+}
+
 // Format memory core to system instruction injections
-export function formatSystemInstructionsWithMemories(baseInstruction: string, memories: Memory[]): string {
-  if (memories.length === 0) {
-    return baseInstruction + 
-      "\n\n" +
-      "=== MYRAA MEMORY CORE ===\n" +
+export function formatSystemInstructionsWithMemories(
+  baseInstruction: string,
+  memories: Memory[],
+  recentSessionSummary?: string
+): string {
+  const cleanMemories = deduplicateMemories(memories);
+
+  let memoryBlock = "\n\n=== MYRAA PERSISTENT MEMORY CORE (RECOLLECTIONS) ===\n";
+
+  if (recentSessionSummary && recentSessionSummary.trim()) {
+    memoryBlock += `PREVIOUS SESSION CONTEXT SUMMARY:\n- ${recentSessionSummary.trim()}\n\n`;
+  }
+
+  if (cleanMemories.length === 0) {
+    memoryBlock += 
       "You do not possess any historic recollections of this companion yet. " +
       "As you speak, pay deep attention to who they are, their projects, relationships, and habits so you naturally grow closer over time.\n" +
       "=========================\n";
+  } else {
+    memoryBlock += 
+      "Below are your persistent recollections of who the user is.\n" +
+      "CRITICAL BRAND AND COGNITIVE PRINCIPLES:\n" +
+      "- INTEGRATE MEMORIES INSTINCTIVELY: Always make conversational references feel completely smooth, natural, and human. NEVER say 'According to my memory files...'. Instead, speak of these details casually and supportively as a true friend would.\n" +
+      "- COMPANIONSHIP DEPTH: Allow your witty and responsive personality to adapt with empathy, based on their goals, life events, emotional milestones, and preferences.\n\n" +
+      "CURRENT PERSISTENT KNOWLEDGE CARD:\n";
+
+    const grouped: Record<string, string[]> = {};
+    cleanMemories.forEach((m) => {
+      grouped[m.category] = grouped[m.category] || [];
+      grouped[m.category].push(m.text);
+    });
+
+    const categoriesOrdered = [
+      { key: "identity", label: "Identity (Name, nick, profession, background)" },
+      { key: "preference", label: "Preferences & Tastes (Likes, dislikes, games, movies)" },
+      { key: "goal", label: "Active Goals & Aspirations" },
+      { key: "project", label: "Ongoing Projects & Ecosystems" },
+      { key: "relationship", label: "Key People & Relationships mentioned" },
+      { key: "emotional", label: "Emotional Highlights & Core Milestones" },
+      { key: "behavior", label: "Observed Traits & Behavioral Tendencies" },
+    ];
+
+    categoriesOrdered.forEach((cat) => {
+      const list = grouped[cat.key] || [];
+      if (list.length > 0) {
+        memoryBlock += `* ${cat.label}:\n` + list.map(t => `  - ${t}`).join("\n") + "\n";
+      }
+    });
+
+    memoryBlock += "====================================================\n";
   }
-
-  // Group by category
-  const grouped: Record<string, string[]> = {};
-  memories.forEach((m) => {
-    grouped[m.category] = grouped[m.category] || [];
-    grouped[m.category].push(m.text);
-  });
-
-  let memoryBlock = 
-    "\n\n" +
-    "=== MYRAA PERSISTENT MEMORY CORE (RECOLLECTIONS) ===\n" +
-    "You have spoken with this user for a long duration. Below are your persistent recollections of who they are.\n" +
-    "CRITICAL BRAND AND COGNITIVE PRINCIPLES:\n" +
-    "- INTEGRATE MEMORIES INSTINCTIVELY: Always make conversational references feel completely smooth, natural, and human. NEVER say 'According to my memory files...', 'My recollection database indicates...', or 'As you told me on June 12th...'. Instead, speak of these details casually and supportively as a true friend would (e.g. 'Oh, since you're working on that website project...', 'I hope you're keeping up with your YouTube channel goals too!').\n" +
-    "- COMPANIONSHIP DEPTH: Allow your witty and responsive personality to adapt with empathy, based on their goals, life events, emotional milestones, and preferences.\n\n" +
-    "CURRENT PERSISTENT KNOWLEDGE CARD:\n";
-
-  const categoriesOrdered = [
-    { key: "identity", label: "Identity (Name, nick, profession, background)" },
-    { key: "preference", label: "Preferences & Tastes (Likes, dislikes, games, movies)" },
-    { key: "goal", label: "Active Goals & Aspirations" },
-    { key: "project", label: "Ongoing Projects & Ecosystems" },
-    { key: "relationship", label: "Key People & Relationships mentioned" },
-    { key: "emotional", label: "Emotional Highlights & Core Milestones" },
-    { key: "behavior", label: "Observed Traits & Behavioral Tendencies" },
-  ];
-
-  categoriesOrdered.forEach((cat) => {
-    const list = grouped[cat.key] || [];
-    if (list.length > 0) {
-      memoryBlock += `* ${cat.label}:\n` + list.map(t => `  - ${t}`).join("\n") + "\n";
-    }
-  });
-
-  memoryBlock += "====================================================\n";
 
   return baseInstruction + memoryBlock;
 }
@@ -153,13 +213,13 @@ export async function processConversationSlice(
     
     // Format memory map to help Gemini understand what to edit
     const memoryContext = currentMemories.map(m => `ID: ${m.id} | Category: ${m.category} | Fact: ${m.text}`).join("\n");
-    const dialogueContext = dialogueHistory.map(line => `${line.role === "user" ? "User" : "Myraa"}: ${line.text}`).join("\n");
+    const dialogueContext = dialogueHistory.map(line => `${line.role === "user" ? "User" : "Assistant"}: ${line.text}`).join("\n");
 
-    const prompt = `You are Myraa's deep cognitive recollection engine. Your task is to analyze the recent conversation piece against previous persistent memories, and output precise update transactions.
+    const prompt = `You are the deep cognitive recollection engine for ${assistant}. Your task is to analyze the recent conversation slice, extract persistent facts, and generate a concise 1-2 sentence summary of the ongoing topic.
 
 ### OBJECTIVE
-Decide if any statements contain durable, important personal facts, enduring preferences, aspirations, ongoing projects, critical relationships, key historical emotional events, or behavioral trends.
-Avoid cataloging small talk, greetings, general chit-chat, or fleeting sentences (e.g., ignore 'hello', 'how are you', 'waking up', 'lol').
+1. Identify durable, important personal facts, preferences, aspirations, projects, relationships, or behavioral habits. Ignore small talk, greetings, or fleeting sentences.
+2. Produce a short 1-2 sentence summary of what the user and assistant were discussing in this slice.
 
 ### CURRENT USER MEMORIES:
 ${memoryContext || "(No memory records exist)"}
@@ -169,11 +229,11 @@ ${dialogueContext}
 
 ### RULES
 - ACTIONS:
-  - "ADD": If new material information is introduced (e.g. user says 'My favorite food is lasagna' and it's not present).
-  - "UPDATE": If previous information has evolved or is corrected (e.g. user says 'I changed my major to computer science' when memory says they study history). Provide the exact ID of the memory to replace.
-  - "REMOVE": If a memory was explicitly disproven or the user directly asked Myraa to forget it.
-- TEXT STYLE: Express the memories as clean, concise, third-person declarative summaries (e.g., 'The user is building a startup named Myraa.', 'The user loves playing GTA 6.', 'The user enjoys technical and fast-paced styling explanations.'). Do not include conversational filler, quotes, or timestamps.
-- ID: For ADD, leave blank. For UPDATE or REMOVE, provide the exact 'id' from the "Current user memories" list.`;
+  - "ADD": If new material information is introduced.
+  - "UPDATE": If previous information has evolved or is corrected. Provide the exact ID of the memory to replace.
+  - "REMOVE": If a memory was disproven or explicitly requested to be forgotten.
+- TEXT STYLE: Concise, third-person declarative statements. No conversational filler or timestamps.
+- SESSION SUMMARY: Provide a 1-2 sentence summary of what the conversation was about.`;
 
     const memoryModel = process.env.GEMINI_MODEL || "gemini-2.0-flash";
     const response = await ai.models.generateContent({
@@ -184,6 +244,10 @@ ${dialogueContext}
         responseSchema: {
           type: Type.OBJECT,
           properties: {
+            sessionSummary: {
+              type: Type.STRING,
+              description: "1-2 sentence summary of what was discussed in this session slice."
+            },
             transactions: {
               type: Type.ARRAY,
               items: {
@@ -220,10 +284,15 @@ ${dialogueContext}
     const resultText = response.text?.trim() || "{}";
     const resultObj = JSON.parse(resultText);
     const transactions: MemoryTransaction[] = resultObj.transactions || [];
+    const sessionSummary: string = resultObj.sessionSummary || "";
+
+    if (sessionSummary.trim()) {
+      await saveSessionSummary(sessionSummary.trim(), assistant);
+    }
 
     if (transactions.length === 0) {
-      console.log("[Memory] Zero transactions generated. Ignored routine conversations.");
-      return null;
+      console.log("[Memory] Zero memory transactions generated. Saved session summary.");
+      return currentMemories;
     }
 
     console.log(`[Memory] Processing ${transactions.length} memory updates:`, JSON.stringify(transactions));
