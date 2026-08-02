@@ -26,6 +26,7 @@ import {
   hasGeminiApiKey,
   setGeminiApiKey,
 } from "./server_paths";
+import { collectTelemetry } from "./server_telemetry";
 
 dotenv.config();
 
@@ -472,6 +473,16 @@ async function startServer() {
       });
     } catch (e: any) {
       res.status(500).json({ ok: false, valid: false, error: e.message });
+    }
+  });
+
+  // Live Telemetry Endpoint
+  app.get("/api/telemetry", async (_req, res) => {
+    try {
+      const data = await collectTelemetry();
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 
