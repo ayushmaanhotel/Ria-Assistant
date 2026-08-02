@@ -11,9 +11,12 @@ import {
   saveMemories, 
   loadSessionSummary,
   saveSessionSummary,
+  loadRecentTurns,
+  saveRecentTurns,
   formatSystemInstructionsWithMemories, 
   processConversationSlice,
-  queryKnowledgeBase
+  queryKnowledgeBase,
+  DialogueTurn
 } from "./server_memory";
 import { Memory } from "./src/lib/memoryTypes";
 import {
@@ -664,12 +667,13 @@ async function startServer() {
 
       const memories = await loadMemories(activeAssistant);
       const sessionSummary = await loadSessionSummary(activeAssistant);
+      const recentTurns = await loadRecentTurns(activeAssistant);
       let fullPrompt = basePrompt;
       if (extraContext) {
         fullPrompt += `\nREAL-TIME EXECUTION CONTEXT:\n${extraContext}\n`;
       }
 
-      const systemInstruction = formatSystemInstructionsWithMemories(fullPrompt, memories, sessionSummary);
+      const systemInstruction = formatSystemInstructionsWithMemories(fullPrompt, memories, sessionSummary, recentTurns);
 
       let assistantResponseText = "";
       let createdFilename = "";
@@ -769,6 +773,10 @@ async function startServer() {
       });
 
       savePrivateRoomMessages(msgs);
+      recentTurns.push({ role: "user", text: text.trim() });
+      recentTurns.push({ role: "model", text: assistantResponseText });
+      saveRecentTurns(recentTurns, activeAssistant).catch(() => {});
+
       res.json({ ok: true, messages: msgs, attachment: createdFilename || undefined });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -1646,21 +1654,22 @@ async function startServer() {
 
       console.log(`[Live Session] Connecting Gemini session with persona ${activeAssistant} and voice ${resolvedVoice}`);
 
-      // Load persistent recollections card and merge with extra custom memories
+      // Load persistent recollections card, recent turns, and merge with extra custom memories
       const memories = await loadMemories(activeAssistant);
       const sessionSummary = await loadSessionSummary(activeAssistant);
+      const recentTurns = await loadRecentTurns(activeAssistant);
       const mergedMemories = [...memories, ...extraMemories];
-      const finalInstructions = formatSystemInstructionsWithMemories(basePrompt, mergedMemories, sessionSummary);
+      const finalInstructions = formatSystemInstructionsWithMemories(basePrompt, mergedMemories, sessionSummary, recentTurns);
 
-      // Track running transcription state for auto memory consolidation
-      let dialogueHistory: { role: string; text: string }[] = [];
+      // Track running transcription state initialized with recent session turns
+      let dialogueHistory: DialogueTurn[] = [...recentTurns];
       let currentModelResponseText = "";
       
       const targetLiveModel = process.env.GEMINI_LIVE_MODEL || "gemini-3.1-flash-live-preview";
       const session = await ai.live.connect({
         model: targetLiveModel,
         config: {
-          responseModalities: [Modality.AUDIO],
+          responseModalities: [Modality.AUDIO, Modality.TEXT],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: resolvedVoice } },
           },
@@ -2292,10 +2301,13 @@ async function startServer() {
                 currentModelResponseText = "";
               }
 
-              // Window dialogue history to last 6 turns to avoid memory consolidation bottleneck
-              if (dialogueHistory.length > 6) {
-                dialogueHistory = dialogueHistory.slice(-6);
+              // Window dialogue history to last 12 turns
+              if (dialogueHistory.length > 12) {
+                dialogueHistory = dialogueHistory.slice(-12);
               }
+
+              // Save recent spoken turns to disk so recall is 100% persistent
+              saveRecentTurns(dialogueHistory, activeAssistant).catch(() => {});
 
               if (dialogueHistory.length >= 2) {
                 const sliceToProcess = [...dialogueHistory];

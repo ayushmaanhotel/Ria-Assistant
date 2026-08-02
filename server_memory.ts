@@ -121,15 +121,61 @@ export async function saveSessionSummary(summary: string, assistant?: string): P
   }
 }
 
+export interface DialogueTurn {
+  role: "user" | "model" | "assistant";
+  text: string;
+  timestamp?: string;
+}
+
+function getRecentTurnsFile(assistant?: string): string {
+  const name = (assistant || "MYRAA").toLowerCase();
+  if (name === "ria") return dataFile("recent_turns_ria.json");
+  if (name === "mike") return dataFile("recent_turns_mike.json");
+  return dataFile("recent_turns.json");
+}
+
+export async function loadRecentTurns(assistant?: string): Promise<DialogueTurn[]> {
+  const targetFile = getRecentTurnsFile(assistant);
+  try {
+    const data = await fs.readFile(targetFile, "utf-8");
+    const list = JSON.parse(data);
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveRecentTurns(turns: DialogueTurn[], assistant?: string): Promise<void> {
+  const targetFile = getRecentTurnsFile(assistant);
+  const cleanTurns = turns.slice(-12);
+  try {
+    await fs.mkdir(path.dirname(targetFile), { recursive: true });
+    await fs.writeFile(targetFile, JSON.stringify(cleanTurns, null, 2), "utf-8");
+  } catch (e) {
+    console.error("[Memory] Error saving recent turns:", e);
+  }
+}
+
 // Format memory core to system instruction injections
 export function formatSystemInstructionsWithMemories(
   baseInstruction: string,
   memories: Memory[],
-  recentSessionSummary?: string
+  recentSessionSummary?: string,
+  recentTurns?: DialogueTurn[]
 ): string {
   const cleanMemories = deduplicateMemories(memories);
 
-  let memoryBlock = "\n\n=== MYRAA PERSISTENT MEMORY CORE (RECOLLECTIONS) ===\n";
+  let memoryBlock = "\n\n=== MYRAA PERSISTENT MEMORY & RECOLLECTION CORE ===\n";
+
+  if (recentTurns && recentTurns.length > 0) {
+    memoryBlock += "=== RECENT DIALOGUE HISTORY (LAST SPOKEN QUESTIONS & ANSWERS) ===\n";
+    memoryBlock += "You MUST remember these recent exchanges from the current and previous conversation session. If the user asks 'what was my last question?', 'what did I just ask?', or 'what were we talking about?', reference these exact turns:\n";
+    recentTurns.slice(-8).forEach((t) => {
+      const speaker = t.role === "user" ? "User (Ayush)" : "Assistant";
+      memoryBlock += `- ${speaker}: "${t.text}"\n`;
+    });
+    memoryBlock += "=========================================================\n\n";
+  }
 
   if (recentSessionSummary && recentSessionSummary.trim()) {
     memoryBlock += `PREVIOUS SESSION CONTEXT SUMMARY:\n- ${recentSessionSummary.trim()}\n\n`;
