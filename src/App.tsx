@@ -24,7 +24,8 @@ import {
   Command,
   Lock,
   Music,
-  MoreHorizontal
+  MoreHorizontal,
+  Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Memory, MemoryCategory } from "./lib/memoryTypes";
@@ -276,6 +277,7 @@ export default function App() {
   const [showCodeDiff, setShowCodeDiff] = useState<boolean>(false);
   const [showCommandLauncher, setShowCommandLauncher] = useState<boolean>(false);
   const [showPrivateRoom, setShowPrivateRoom] = useState<boolean>(false);
+  const [aiWhiteboardCommands, setAiWhiteboardCommands] = useState<any[]>([]);
   const [showMusicHub, setShowMusicHub] = useState<boolean>(false);
   const [showCharacterSelector, setShowCharacterSelector] = useState<boolean>(false);
   const [showMoreMenu, setShowMoreMenu] = useState<boolean>(false);
@@ -515,6 +517,14 @@ export default function App() {
         console.log("[App] WebSocket memories sync triggered:", updatedMemories);
         if (Array.isArray(updatedMemories)) {
           setMemories(updatedMemories);
+        }
+      },
+      onWhiteboardCommand: (command) => {
+        console.log("[App] Whiteboard command received from AI:", command);
+        setAiWhiteboardCommands((prev) => [...prev, command]);
+        // Auto-open Private Room whiteboard tab when AI writes on it
+        if (!showPrivateRoom) {
+          setShowPrivateRoom(true);
         }
       }
     });
@@ -1041,6 +1051,20 @@ export default function App() {
               <span className="hidden sm:inline">{isScreenSharing ? "SHARING" : "SCREEN"}</span>
             </button>
 
+            {isScreenSharing && (
+              <button
+                onClick={() => {
+                  captureFrameAndSend();
+                  setTimeout(() => captureFrameAndSend(), 300);
+                }}
+                className="flex items-center gap-1 px-2.5 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-[10px] font-mono font-bold tracking-widest transition cursor-pointer"
+                title="Instant Screen Analysis — Send high-res screen frame to AI"
+              >
+                <Eye size={13} className="text-emerald-400" />
+                <span className="hidden sm:inline">EXPLAIN</span>
+              </button>
+            )}
+
             <div className="h-6 w-[1px] bg-white/10 mx-1" />
 
             {/* Center: Power Button */}
@@ -1285,6 +1309,7 @@ export default function App() {
         isOpen={showPrivateRoom}
         onClose={() => setShowPrivateRoom(false)}
         assistantName={settings.activeAssistant || "MYRAA"}
+        aiCommands={aiWhiteboardCommands}
       />
 
       {/* Music & Audio Hub Modal */}

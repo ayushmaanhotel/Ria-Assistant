@@ -320,5 +320,14 @@ export async function queryKnowledgeBase(searchTerm: string): Promise<string[]> 
     results.push(...matchedTutor.slice(0, 5));
   } catch {}
 
+  // 3. User Uploaded Vault Documents Knowledge Lookup
+  try {
+    const userKbPath = resolveKnowledgePath("knowledge_base/user_uploaded_facts.json");
+    const dataUser = await fs.readFile(userKbPath, "utf-8");
+    const userFacts = JSON.parse(dataUser) as string[];
+    const matchedUser = userFacts.filter(f => f.toLowerCase().includes(term));
+    results.push(...matchedUser.slice(0, 5));
+  } catch {}
+
   return results.slice(0, 12);
 }

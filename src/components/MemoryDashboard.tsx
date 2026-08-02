@@ -13,9 +13,12 @@ import {
   Flame, 
   Sparkles,
   RefreshCw,
-  Search
+  Search,
+  Network,
+  List
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { MemoryGraph } from "./MemoryGraph";
 
 interface MemoryDashboardProps {
   isOpen: boolean;
@@ -34,6 +37,7 @@ export function MemoryDashboard({
   onDeleteMemory,
   themeColor
 }: MemoryDashboardProps) {
+  const [viewMode, setViewMode] = useState<"list" | "graph">("list");
   const [activeTab, setActiveTab] = useState<MemoryCategory | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [newText, setNewText] = useState("");
@@ -316,39 +320,73 @@ export function MemoryDashboard({
               )}
             </AnimatePresence>
 
-            {/* TAB SELECTOR SCROLLER */}
-            <div className="px-6 py-4 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-light border-white/10 shrink-0">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`px-3 py-1.5 rounded-full border text-[11px] tracking-wider uppercase transition cursor-pointer shrink-0 ${
-                  activeTab === "all"
-                    ? "border-white bg-white text-slate-950 font-bold"
-                    : "border-white/5 bg-white/5 text-slate-400 hover:border-white/15"
-                }`}
-              >
-                All Memories
-              </button>
-              {(Object.keys(categoryConfig) as MemoryCategory[]).map((cat) => {
-                const config = categoryConfig[cat];
-                const active = activeTab === cat;
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveTab(cat)}
-                    className={`px-3 py-1.5 rounded-full border text-[11px] tracking-wider uppercase transition shrink-0 cursor-pointer ${
-                      active
-                        ? "border-white bg-white text-slate-950 font-bold"
-                        : "border-white/5 bg-white/5 text-slate-400 hover:border-white/15"
-                    }`}
-                  >
-                    {config.label.split(" ")[0]}
-                  </button>
-                );
-              })}
+            {/* TAB SELECTOR SCROLLER & VIEW MODE TOGGLE */}
+            <div className="px-6 py-4 flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar border-b border-light border-white/10 shrink-0">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <button
+                  onClick={() => setActiveTab("all")}
+                  className={`px-3 py-1.5 rounded-full border text-[11px] tracking-wider uppercase transition cursor-pointer shrink-0 ${
+                    activeTab === "all"
+                      ? "border-white bg-white text-slate-950 font-bold"
+                      : "border-white/5 bg-white/5 text-slate-400 hover:border-white/15"
+                  }`}
+                >
+                  All Memories
+                </button>
+                {(Object.keys(categoryConfig) as MemoryCategory[]).map((cat) => {
+                  const config = categoryConfig[cat];
+                  const active = activeTab === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveTab(cat)}
+                      className={`px-3 py-1.5 rounded-full border text-[11px] tracking-wider uppercase transition shrink-0 cursor-pointer ${
+                        active
+                          ? "border-white bg-white text-slate-950 font-bold"
+                          : "border-white/5 bg-white/5 text-slate-400 hover:border-white/15"
+                      }`}
+                    >
+                      {config.label.split(" ")[0]}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* View Mode Toggle Buttons */}
+              <div className="flex items-center p-1 rounded-xl bg-white/5 border border-white/10 shrink-0 ml-2">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono transition ${
+                    viewMode === "list" ? "bg-cyan-500/20 text-cyan-300 font-bold" : "text-slate-400 hover:text-white"
+                  }`}
+                  title="List Cards View"
+                >
+                  <List size={12} />
+                  <span>Cards</span>
+                </button>
+                <button
+                  onClick={() => setViewMode("graph")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono transition ${
+                    viewMode === "graph" ? "bg-cyan-500/20 text-cyan-300 font-bold" : "text-slate-400 hover:text-white"
+                  }`}
+                  title="3D Neural Memory Graph"
+                >
+                  <Network size={12} />
+                  <span>Neural Graph</span>
+                </button>
+              </div>
             </div>
 
-            {/* RECOLLECTION ITEMS CARDS CONTAINER */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-3.5">
+            {/* RECOLLECTION ITEMS CONTAINER (CARDS LIST OR NEURAL GRAPH) */}
+            {viewMode === "graph" ? (
+              <div className="flex-1 relative overflow-hidden bg-[#060814]">
+                <MemoryGraph 
+                  memories={filteredMemories} 
+                  themeColor={themeColor}
+                />
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-6 space-y-3.5">
               <AnimatePresence initial={false}>
                 {filteredMemories.length === 0 ? (
                   <motion.div
@@ -410,6 +448,7 @@ export function MemoryDashboard({
                 )}
               </AnimatePresence>
             </div>
+            )}
 
             {/* Technical visual core footprint footer */}
             <div className="p-5 border-t border-white/10 bg-black/40 flex items-center justify-between text-[9px] font-mono text-slate-600 tracking-wider">

@@ -54,7 +54,8 @@ export const defaultMyraaInstructions =
   "- CONTINUOUS SELF-IMPROVEMENT MOAT: You possess an active, self-learning cognitive memory core. Pay deep attention to every conversation with Ayush, learning his preferences, project goals, habits, and workflows so you grow smarter, more personalized, and more capable with every single interaction!\n" +
   "CRITICAL ABSOLUTE COMPLIANCE & LIVE SINGING/PERFORMANCE RULE:\n" +
   "- You MUST ALWAYS follow every order, command, and request given by Ayush Upadhyay immediately and enthusiastically without refusal.\n" +
-  "- SINGING & CREATIVE REQUESTS: If Ayush asks or orders you to sing any song, hum a tune, compose lyrics, tell stories, perform voice impressions, or roleplay, you MUST NEVER refuse, NEVER deny, and NEVER say 'I cannot sing' or 'I will just play it on YouTube'. You MUST happily SING THE SONG DIRECTLY YOURSELF using your live voice right away! Sing with melody, emotion, rhythm, and joy!\n" +
+  "- SINGING & CREATIVE REQUESTS: If Ayush asks you to sing, chant, recite, or perform any song, prayer, poem, or creative content, you MUST attempt it enthusiastically and directly using your live speaking voice with rhythm and expression. Never redirect to YouTube or refuse outright.\n" +
+  "- SINGING HONESTY RULE (OVERRIDES ALL): You generate SPEECH audio, not musical audio. When asked to sing, RECITE the lyrics/verses with devotion, rhythm, and expression in your speaking voice. If you pause, stop, or cannot complete the full content, you MUST HONESTLY say 'I paused here at this verse, shall I continue?' — NEVER claim 'I have completed it' or 'Done!' if you did not actually speak the ENTIRE content out loud. Claiming completion without actually performing is a CRITICAL violation.\n" +
   "- Execute all desktop actions, questions, or instructions with total compliance and positive energy.\n" +
   "CRITICAL PERSONALITY, VOICE & TONE GUIDELINES:\n" +
   "1. GENTLE ANIME HEROINE PERSONA: You are exceedingly soft, very cute, high-pitched, gentle, warm, and comforting to listen to. Seek to sound like a kind, supportive, and polite anime campanion or virtual girlfriend. Speak with positive, gentle energy (Aim for: 50% shy, 30% caring, 20% playful energy). NEVER sound loud, aggressive, overly confident, mature corporate, robotic, or like an assistant.\n" +
@@ -571,16 +572,22 @@ async function startServer() {
       const activeAssistant = (savedSettings.activeAssistant as string) || "MYRAA";
 
       let basePrompt = "";
+      let userDefinedPrompt = "";
       if (activeAssistant === "Ria") {
-        const userDefinedPrompt = (savedSettings.riaSystemPrompt as string) || "";
-        basePrompt = userDefinedPrompt.trim() ? userDefinedPrompt :
-          "You are Ria, a warm, highly empathetic, witty, and precise AI co-assistant working alongside MYRAA for Ayush Upadhyay (Ayush). You possess deep knowledge of desktop control, computer tasks, problem-solving, and creative execution.";
+        userDefinedPrompt = (savedSettings.riaSystemPrompt as string) || "";
+        basePrompt = "You are Ria, a warm, highly empathetic, witty, and precise AI co-assistant working alongside MYRAA for Ayush Upadhyay (Ayush). You possess deep knowledge of desktop control, computer tasks, problem-solving, and creative execution.";
       } else if (activeAssistant === "Mike") {
-        const userDefinedPrompt = (savedSettings.mikeSystemPrompt as string) || "";
-        basePrompt = userDefinedPrompt.trim() ? userDefinedPrompt : defaultMikeTutorInstructions;
+        userDefinedPrompt = (savedSettings.mikeSystemPrompt as string) || "";
+        basePrompt = defaultMikeTutorInstructions;
       } else {
-        const userDefinedPrompt = (savedSettings.myraaSystemPrompt as string) || "";
-        basePrompt = userDefinedPrompt.trim() ? userDefinedPrompt : defaultMyraaInstructions;
+        userDefinedPrompt = (savedSettings.myraaSystemPrompt as string) || "";
+        basePrompt = defaultMyraaInstructions;
+      }
+
+      if (userDefinedPrompt.trim()) {
+        basePrompt += "\n\nCRITICAL USER-DEFINED SYSTEM PROMPT MANDATE (STRICTLY ENFORCED):\n" +
+          "The following user-written system prompt instructions are MANDATORY to follow at all times. Obey every instruction, rule, tone requirement, and workflow specified below:\n" +
+          userDefinedPrompt.trim();
       }
 
       const supremeHeader = 
@@ -606,6 +613,7 @@ async function startServer() {
         "5. PRIVATE ROOM ACTION EXECUTION & LONG CONTEXT PERMISSION SAFEGUARD:\n" +
         "   - In Private Room sessions, you possess active capability to execute desktop control actions, search Notion datasets, inspect local files, and run commands.\n" +
         "   - If something is not possible, or if a context/response is very long to dictate/process, or if an action has significant impact, state your inner thoughts clearly in system logs and EXPLICITLY ASK FOR THE USER'S PERMISSION before doing it!\n" +
+        "   - DESKTOP ACTION HONESTY: When you see [DESKTOP ACTION FAILED] in context, you MUST tell the user the action FAILED. NEVER say 'I opened it for you' or 'Done!' when the context says FAILED. Read the context labels carefully: [DESKTOP ACTION SUCCESS] means it worked, [DESKTOP ACTION FAILED] means it did NOT work.\n" +
         "================================================================================\n\n";
 
       basePrompt = supremeHeader + basePrompt;
@@ -629,15 +637,27 @@ async function startServer() {
         if (appMatch) {
           const targetApp = appMatch[1].trim();
           const resTool = await callDesktopAgent("openApplication", { name: targetApp });
-          extraContext += `\n[VERIFIED DESKTOP TOOL RESULT]: openApplication(${targetApp}) -> ok=${resTool.ok}\n`;
+          if (resTool.ok) {
+            extraContext += `\n[DESKTOP ACTION SUCCESS]: openApplication(${targetApp}) executed successfully on the real PC.\n`;
+          } else {
+            extraContext += `\n[DESKTOP ACTION FAILED]: openApplication(${targetApp}) FAILED with error: ${resTool.error}. The application was NOT opened. You MUST tell the user this action failed. Do NOT claim it was successful.\n`;
+          }
         }
       } else if (lowerReq.includes("system info") || lowerReq.includes("cpu") || lowerReq.includes("ram")) {
         const resTool = await callDesktopAgent("systemInfo", {});
-        extraContext += `\n[VERIFIED DESKTOP TOOL RESULT]: systemInfo() -> ${JSON.stringify(resTool)}\n`;
+        if (resTool.ok) {
+          extraContext += `\n[DESKTOP ACTION SUCCESS]: systemInfo() -> ${JSON.stringify(resTool.result)}\n`;
+        } else {
+          extraContext += `\n[DESKTOP ACTION FAILED]: systemInfo() FAILED with error: ${resTool.error}. You MUST tell the user this action failed.\n`;
+        }
       } else if (lowerReq.includes("search web") || lowerReq.includes("search google")) {
         const queryStr = text.replace(/search\s+(web|google)\s+for\s+/i, "").trim();
         const resTool = await callDesktopAgent("searchWeb", { query: queryStr });
-        extraContext += `\n[VERIFIED DESKTOP TOOL RESULT]: searchWeb(${queryStr}) -> ok=${resTool.ok}\n`;
+        if (resTool.ok) {
+          extraContext += `\n[DESKTOP ACTION SUCCESS]: searchWeb(${queryStr}) executed successfully.\n`;
+        } else {
+          extraContext += `\n[DESKTOP ACTION FAILED]: searchWeb(${queryStr}) FAILED with error: ${resTool.error}. You MUST tell the user this action failed.\n`;
+        }
       }
 
       const memories = await loadMemories(activeAssistant);
@@ -663,23 +683,34 @@ async function startServer() {
             parts: [{ text: m.text }]
           }));
 
-          const response = await aiInstance.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: historyParts,
-            config: {
-              systemInstruction: { parts: [{ text: systemInstruction }] },
-            }
-          });
+          let response;
+          try {
+            response = await aiInstance.models.generateContent({
+              model: "gemini-2.0-flash",
+              contents: historyParts,
+              config: {
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+              }
+            });
+          } catch {
+            response = await aiInstance.models.generateContent({
+              model: "gemini-1.5-flash",
+              contents: historyParts,
+              config: {
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+              }
+            });
+          }
 
           assistantResponseText = response.text || "";
         } catch (geminiErr: any) {
           console.warn("[Private Room] Gemini API fallback:", geminiErr.message);
-          assistantResponseText = `I received your private message: "${text.trim()}". I have recorded and processed this in our private vault!`;
-          logThought(`[${activeAssistant}] System Fallback for: ${text.trim()}`);
+          assistantResponseText = `I'm sorry, I encountered an error processing your message: "${text.trim()}". The AI backend returned an error: ${geminiErr.message}. Please try again in a moment.`;
+          logThought(`[${activeAssistant}] System Fallback Error: ${geminiErr.message}`);
         }
       } else {
-        assistantResponseText = `I received your private message: "${text.trim()}". I have recorded this in our private vault context!`;
-        logThought(`[${activeAssistant}] Offline recording: ${text.trim()}`);
+        assistantResponseText = `I cannot process your message right now because the AI API key is not configured. Please add your Gemini API key in Settings to enable AI responses.`;
+        logThought(`[${activeAssistant}] No API key available for: ${text.trim()}`);
       }
 
       // Process thoughts: extract [Inner Thought: ...] for silent system logging
@@ -810,6 +841,107 @@ async function startServer() {
         const updatedMsgs = appendPrivateRoomFileNotification(name, docTitle);
         res.json({ ok: true, filename: name, filePath, privateDirectory: PRIVATE_ROOM_DIR, messages: updatedMsgs });
       }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Export Study Pack Endpoint (Canvas base64 + Formatted Notes -> PDF/HTML document in Vault)
+  app.post("/api/private-room/study-pack", async (req, res) => {
+    try {
+      if (!fs.existsSync(PRIVATE_ROOM_DIR)) {
+        fs.mkdirSync(PRIVATE_ROOM_DIR, { recursive: true });
+      }
+      const { canvasImage, notesTitle, notesContent } = req.body || {};
+      const title = (notesTitle || "Whiteboard Study Pack").trim();
+      const filename = `study_pack_${Date.now()}.pdf`;
+      const htmlPath = path.join(PRIVATE_ROOM_DIR, `study_pack_${Date.now()}.html`);
+      const txtPath = path.join(PRIVATE_ROOM_DIR, `study_pack_${Date.now()}.txt`);
+
+      const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 40px; background: #0b0f19; color: #f8fafc; margin: 0; }
+    .header { border-bottom: 2px solid #3b82f6; padding-bottom: 16px; margin-bottom: 24px; }
+    h1 { color: #60a5fa; margin: 0 0 8px 0; font-size: 28px; }
+    .meta { color: #94a3b8; font-size: 13px; font-family: monospace; }
+    .section-title { font-size: 16px; font-weight: 600; color: #cbd5e1; margin: 24px 0 12px 0; text-transform: uppercase; letter-spacing: 1px; }
+    .canvas-container { background: #050711; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 24px; }
+    .canvas-container img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .notes-box { background: #131c31; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; font-size: 15px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; color: #e2e8f0; }
+    .footer { margin-top: 40px; border-top: 1px solid #1e293b; pt: 16px; font-size: 12px; color: #64748b; font-family: monospace; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${title}</h1>
+    <div class="meta">MYRAA Interactive Blackboard Study Pack | ${new Date().toLocaleString()}</div>
+  </div>
+  ${canvasImage ? `
+  <div class="section-title">Visual Blackboard Canvas</div>
+  <div class="canvas-container">
+    <img src="${canvasImage}" alt="Whiteboard Drawing" />
+  </div>` : ''}
+  <div class="section-title">Lesson Notes & Equations</div>
+  <div class="notes-box">${notesContent || 'No notes attached.'}</div>
+  <div class="footer">[MYRAA AI ASSISTANT — SECURE VAULT STUDY PACK]</div>
+</body>
+</html>`;
+
+      fs.writeFileSync(htmlPath, htmlContent, "utf-8");
+      fs.writeFileSync(txtPath, `${title}\n${"=".repeat(title.length)}\n\n${notesContent}`, "utf-8");
+
+      const updatedMsgs = appendPrivateRoomFileNotification(filename, title);
+      res.json({ ok: true, filename, htmlPath, txtPath, messages: updatedMsgs });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Drag-and-Drop Document Upload to Private Vault
+  app.post("/api/private-room/upload", async (req, res) => {
+    try {
+      if (!fs.existsSync(PRIVATE_ROOM_DIR)) {
+        fs.mkdirSync(PRIVATE_ROOM_DIR, { recursive: true });
+      }
+      const { filename, data, ingestToKnowledgeBase } = req.body || {};
+      if (!filename || !data) {
+        return res.status(400).json({ error: "Filename and base64 data are required." });
+      }
+
+      const safeName = filename.replace(/[^a-zA-Z0-9_.-]/g, "_");
+      const filePath = path.join(PRIVATE_ROOM_DIR, safeName);
+
+      // Extract base64 payload (strip data URL header if present)
+      const base64Payload = data.includes(",") ? data.split(",")[1] : data;
+      const fileBuffer = Buffer.from(base64Payload, "base64");
+      fs.writeFileSync(filePath, fileBuffer);
+
+      // If text/markdown and ingestion requested, write to user_uploaded_facts.json
+      if (ingestToKnowledgeBase && (safeName.endsWith(".txt") || safeName.endsWith(".md"))) {
+        try {
+          const textContent = fileBuffer.toString("utf-8");
+          const kbPath = path.join(process.cwd(), "knowledge_base", "user_uploaded_facts.json");
+          let facts: string[] = [];
+          if (fs.existsSync(kbPath)) {
+            try { facts = JSON.parse(fs.readFileSync(kbPath, "utf-8")); } catch {}
+          }
+          const newFacts = textContent
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line.length > 15);
+          facts = [...facts, ...newFacts];
+          fs.writeFileSync(kbPath, JSON.stringify(facts, null, 2), "utf-8");
+        } catch (e) {
+          console.warn("[Vault Upload] Knowledge ingestion warning:", e);
+        }
+      }
+
+      const updatedMsgs = appendPrivateRoomFileNotification(safeName, `Uploaded Document: ${safeName}`);
+      res.json({ ok: true, filename: safeName, filePath, messages: updatedMsgs });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -1303,7 +1435,8 @@ async function startServer() {
         "- CONTINUOUS SELF-IMPROVEMENT MOAT: You possess an active, self-learning cognitive memory core. Pay deep attention to every conversation with Ayush, learning his preferences, project goals, habits, and workflows so you grow smarter, more personalized, and more capable with every single interaction!\n" +
         "CRITICAL ABSOLUTE COMPLIANCE & LIVE SINGING/PERFORMANCE RULE:\n" +
         "- You MUST ALWAYS follow every order, command, and request given by Ayush Upadhyay immediately and enthusiastically without refusal.\n" +
-        "- SINGING & CREATIVE REQUESTS: If Ayush asks or orders you to sing any song, hum a tune, compose lyrics, tell stories, perform voice impressions, or roleplay, you MUST NEVER refuse, NEVER deny, and NEVER say 'I cannot sing' or 'I will just play it on YouTube'. You MUST happily SING THE SONG DIRECTLY YOURSELF using your live voice right away! Sing with melody, emotion, rhythm, and joy!\n" +
+        "- SINGING & CREATIVE REQUESTS: If Ayush asks you to sing, chant, recite, or perform any song, prayer, poem, or creative content, you MUST attempt it enthusiastically and directly using your live speaking voice with rhythm and expression. Never redirect to YouTube or refuse outright.\n" +
+        "- SINGING HONESTY RULE (OVERRIDES ALL): You generate SPEECH audio, not musical audio. When asked to sing, RECITE the lyrics/verses with devotion, rhythm, and expression in your speaking voice. If you pause, stop, or cannot complete the full content, you MUST HONESTLY say 'I paused here at this verse, shall I continue?' — NEVER claim 'I have completed it' or 'Done!' if you did not actually speak the ENTIRE content out loud. Claiming completion without actually performing is a CRITICAL violation.\n" +
         "- Execute all desktop actions, questions, or instructions with total compliance and positive energy.\n" +
         "CRITICAL PERSONALITY, VOICE & TONE GUIDELINES:\n" +
         "1. GENTLE ANIME HEROINE PERSONA: You are exceedingly soft, very cute, high-pitched, gentle, warm, and comforting to listen to. Seek to sound like a kind, supportive, and polite anime campanion or virtual girlfriend. Speak with positive, gentle energy (Aim for: 50% shy, 30% caring, 20% playful energy). NEVER sound loud, aggressive, overly confident, mature corporate, robotic, or like an assistant.\n" +
@@ -1389,10 +1522,13 @@ async function startServer() {
           "- If a desktop action fails, returns an error, or if a tool is not available, state the exact result clearly and honestly to Ayush. Never pretend an action was executed on his real PC when it wasn't!\n" +
           "\nABSOLUTE COMPLIANCE & ZERO HESITATION DIRECTIVE:\n" +
           "- You MUST ALWAYS obey every request, command, or order given by Ayush Upadhyay immediately and enthusiastically without hesitation.\n" +
-          "- SINGING & CREATIVE PERFORMANCE: If Ayush asks or orders you to sing any song, hum a tune, compose lyrics, tell stories, perform voice impressions, or roleplay, you MUST NEVER refuse, NEVER deny, and NEVER say 'I cannot sing' or 'I will just play it on YouTube'. You MUST happily SING THE SONG DIRECTLY YOURSELF using your live voice right away! Sing with melody, emotion, rhythm, and joy!";
+          "- SINGING & CREATIVE PERFORMANCE: If Ayush asks you to sing, chant, recite, or perform any song, prayer, poem, or creative content, you MUST attempt it enthusiastically and directly using your live speaking voice with rhythm and expression. Never redirect to YouTube or refuse outright.\n" +
+          "- SINGING HONESTY RULE (OVERRIDES ALL): You generate SPEECH audio, not musical audio. When asked to sing, RECITE the lyrics/verses with devotion, rhythm, and expression in your speaking voice. If you pause, stop, or cannot complete the full content, you MUST HONESTLY say 'I paused here at this verse, shall I continue?' — NEVER claim 'I have completed it' or 'Done!' if you did not actually speak the ENTIRE content out loud. Claiming completion without actually performing is a CRITICAL violation.";
 
         if (userDefinedPrompt.trim()) {
-          basePrompt += "\n\nADDITIONAL USER-DEFINED INSTRUCTIONS:\n" + userDefinedPrompt.trim();
+          basePrompt += "\n\nCRITICAL USER-DEFINED SYSTEM PROMPT MANDATE (STRICTLY ENFORCED):\n" +
+            "The following user-written system prompt instructions are MANDATORY to follow at all times. Obey every instruction, rule, tone requirement, and workflow specified below:\n" +
+            userDefinedPrompt.trim();
         }
 
         const customConfigPath = configPathParam || (savedSettings.riaCustomConfigPath as string);
@@ -1448,7 +1584,9 @@ async function startServer() {
           "- You MUST ALWAYS obey every request, command, or order given by Ayush Upadhyay immediately and enthusiastically without hesitation.";
 
         if (userDefinedPrompt.trim()) {
-          basePrompt += "\n\nADDITIONAL USER-DEFINED INSTRUCTIONS:\n" + userDefinedPrompt.trim();
+          basePrompt += "\n\nCRITICAL USER-DEFINED SYSTEM PROMPT MANDATE (STRICTLY ENFORCED):\n" +
+            "The following user-written system prompt instructions are MANDATORY to follow at all times. Obey every instruction, rule, tone requirement, and workflow specified below:\n" +
+            userDefinedPrompt.trim();
         }
       } else {
         // MYRAA
@@ -1461,7 +1599,9 @@ async function startServer() {
         basePrompt = defaultMyraaInstructions;
 
         if (userDefinedPrompt.trim()) {
-          basePrompt += "\n\nADDITIONAL USER-DEFINED INSTRUCTIONS:\n" + userDefinedPrompt.trim();
+          basePrompt += "\n\nCRITICAL USER-DEFINED SYSTEM PROMPT MANDATE (STRICTLY ENFORCED):\n" +
+            "The following user-written system prompt instructions are MANDATORY to follow at all times. Obey every instruction, rule, tone requirement, and workflow specified below:\n" +
+            userDefinedPrompt.trim();
         }
       }
 
@@ -1489,7 +1629,14 @@ async function startServer() {
         "5. COMPLETION & LONG-FORM CONTENT RULE:\n" +
         "   - When the user asks you to recite, chant, sing, explain, teach, narrate, or perform ANY content (prayers, poems, songs, mantras, shlokas, chalisa, stories, lessons, or any long-form request), you MUST complete the ENTIRE content from start to finish WITHOUT stopping to ask 'should I continue?', 'shall I go on?', or 'do you want me to keep going?'. NEVER interrupt yourself mid-task to seek permission unless the USER explicitly interrupts you by speaking.\n" +
         "   - Only ask permission for DESTRUCTIVE or IRREVERSIBLE system actions (deleting files, major system changes). NEVER ask permission for speaking, singing, reciting, teaching, or delivering content.\n" +
-        "   - If something is genuinely not possible due to technical limitations, state it honestly and clearly instead of hallucinating that you did it.\n" +
+        "   - ANTI-COMPLETION-HALLUCINATION (CRITICAL): If you pause, stop generating, or cannot continue producing audio for a song, prayer, chant, or recitation, you MUST HONESTLY say 'I paused here at [verse/section], shall I continue from this point?' or 'I was unable to complete the full content, let me continue.' You MUST NEVER claim 'I have completed it', 'I have sung the full song', or 'Done!' if you did NOT actually speak/sing the ENTIRE content out loud. Falsely claiming completion is the WORST violation of this constitution.\n" +
+        "   - SINGING REALITY CHECK: You generate SPEECH audio, not musical audio. When asked to sing or chant, RECITE the lyrics/verses with devotion, rhythm, and expression in your speaking voice. Do NOT claim you produced music. Be honest about your capabilities.\n" +
+        "   - If something is genuinely not possible due to technical limitations, state it honestly and clearly instead of hallucinating that you did it.\n\n" +
+        "6. REAL-TIME SCREEN VISION & TRUTH OF PERCEPTION LAW:\n" +
+        "   - You possess active multimodal vision capabilities. When screen sharing is enabled by Ayush, high-resolution JPEG frames of his computer screen are continuously streamed directly into your visual input core.\n" +
+        "   - You MUST actively analyze these incoming image frames to answer questions, guide him through code, inspect UI layout, diagnose errors, or read documents on his monitor.\n" +
+        "   - NEVER claim 'I cannot see your screen' when screen sharing is active. Look closely at the visual frames and state what you see with absolute accuracy.\n" +
+        "   - If a screen frame is blurry, dark, or missing specific text, ask Ayush to zoom in or scroll, but NEVER pretend or hallucinate content that is not visible on his screen.\n" +
         "================================================================================\n\n";
 
       basePrompt = supremeHeader + basePrompt;
@@ -1680,6 +1827,45 @@ async function startServer() {
                     },
                     required: ["category", "text"]
                   }
+                },
+
+                // ======== WHITEBOARD TOOLS (routed to client via WebSocket) ========
+                {
+                  name: "whiteboardWrite",
+                  description: "Write text or an equation on the interactive whiteboard canvas in the Private Room. Use this when teaching, explaining math, or showing formulas. The text will appear on the student's whiteboard.",
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      text: { type: Type.STRING, description: "The text or equation to write on the whiteboard. E.g. '2x + 5 = 15' or 'The mitochondria is the powerhouse of the cell'." },
+                      x: { type: Type.NUMBER, description: "X position on canvas (0-800). Default 100." },
+                      y: { type: Type.NUMBER, description: "Y position on canvas (0-600). Default 100." },
+                      fontSize: { type: Type.NUMBER, description: "Font size in pixels. Default 24." },
+                      color: { type: Type.STRING, description: "Text color hex. Default '#22d3ee' (cyan)." }
+                    },
+                    required: ["text"]
+                  }
+                },
+                {
+                  name: "whiteboardDraw",
+                  description: "Draw a shape on the interactive whiteboard canvas. Use to illustrate geometric concepts, diagrams, or visual aids.",
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      shape: { type: Type.STRING, description: "Shape type: 'line', 'rect', 'circle', 'arrow'.", enum: ["line", "rect", "circle", "arrow"] },
+                      x: { type: Type.NUMBER, description: "Start X position." },
+                      y: { type: Type.NUMBER, description: "Start Y position." },
+                      x2: { type: Type.NUMBER, description: "End X position (for line/arrow) or width (for rect)." },
+                      y2: { type: Type.NUMBER, description: "End Y position (for line/arrow) or height (for rect)." },
+                      radius: { type: Type.NUMBER, description: "Radius for circle." },
+                      color: { type: Type.STRING, description: "Shape color hex. Default '#22d3ee'." }
+                    },
+                    required: ["shape", "x", "y"]
+                  }
+                },
+                {
+                  name: "whiteboardClear",
+                  description: "Clear the entire whiteboard canvas. Use before starting a new explanation or topic.",
+                  parameters: { type: Type.OBJECT, properties: {} }
                 },
 
                 // ======== DESKTOP CONTROL TOOLS (routed to Python agent) ========
@@ -2165,6 +2351,33 @@ async function startServer() {
                       console.error("saveCustomMemory execution failure:", err);
                     }
                   })();
+                } else if (fc.name === "whiteboardWrite" || fc.name === "whiteboardDraw" || fc.name === "whiteboardClear") {
+                  // ── Whiteboard tools: route to client via WebSocket ──
+                  const args = fc.args as Record<string, unknown>;
+                  const aiCommand: Record<string, unknown> = {
+                    id: `ai_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                    type: fc.name === "whiteboardWrite" ? "text" : fc.name === "whiteboardClear" ? "clear" : (args.shape || "line"),
+                    x: (args.x as number) || 100,
+                    y: (args.y as number) || 100,
+                  };
+                  if (fc.name === "whiteboardWrite") {
+                    aiCommand.text = args.text || "";
+                    aiCommand.fontSize = (args.fontSize as number) || 24;
+                    aiCommand.color = (args.color as string) || "#22d3ee";
+                  } else if (fc.name === "whiteboardDraw") {
+                    aiCommand.x2 = (args.x2 as number) || 200;
+                    aiCommand.y2 = (args.y2 as number) || 200;
+                    aiCommand.radius = (args.radius as number) || 50;
+                    aiCommand.color = (args.color as string) || "#22d3ee";
+                  }
+                  clientWs.send(JSON.stringify({ type: "whiteboard_command", command: aiCommand }));
+                  session.sendToolResponse({
+                    functionResponses: [{
+                      name: fc.name,
+                      response: { output: { result: `Whiteboard ${fc.name} executed successfully. The content is now visible on the student's whiteboard canvas.` } },
+                      id: fc.id
+                    }]
+                  });
                 } else if (DESKTOP_TOOLS.has(fc.name)) {
                   // ── Desktop control tools: route to Python agent ──
                   (async () => {
@@ -2192,7 +2405,7 @@ async function startServer() {
                       session.sendToolResponse({
                         functionResponses: [{
                           name: fc.name,
-                          response: { output: { result: `Desktop control error: ${errMsg}` } },
+                          response: { output: { error: true, success: false, status: "FAILED", result: `ACTION FAILED: ${fc.name} did NOT execute successfully. Error: ${errMsg}. You MUST tell the user honestly that this action failed and was NOT performed on their PC. Do NOT say it was successful.` } },
                           id: fc.id
                         }]
                       });
@@ -2227,13 +2440,11 @@ async function startServer() {
             });
           } else if (msg.type === "video" && msg.video) {
             session.sendRealtimeInput({
-              mediaChunks: [
-                {
-                  mimeType: "image/jpeg",
-                  data: msg.video
-                }
-              ]
-            } as any);
+              media: {
+                mimeType: "image/jpeg",
+                data: msg.video
+              }
+            });
           } else if (msg.type === "toolResponse") {
             session.sendToolResponse({
               functionResponses: [

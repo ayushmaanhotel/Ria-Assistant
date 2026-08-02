@@ -103,6 +103,7 @@ export class MyraaAudioSession {
   private onToolCall: (name: string, args: any, callback: (result: any) => void) => void;
   private onError: (error: string) => void;
   private onMemorySync?: (memories: any[]) => void;
+  private onWhiteboardCommand?: (command: any) => void;
   
   private currentState: LiveState = "disconnected";
   private isActivated = false;
@@ -113,12 +114,14 @@ export class MyraaAudioSession {
     onToolCall: (name: string, args: any, callback: (result: any) => void) => void;
     onError: (error: string) => void;
     onMemorySync?: (memories: any[]) => void;
+    onWhiteboardCommand?: (command: any) => void;
   }) {
     this.onStateChange = handlers.onStateChange;
     this.onTranscription = handlers.onTranscription;
     this.onToolCall = handlers.onToolCall;
     this.onError = handlers.onError;
     this.onMemorySync = handlers.onMemorySync;
+    this.onWhiteboardCommand = handlers.onWhiteboardCommand;
   }
 
   private setState(state: LiveState) {
@@ -346,6 +349,13 @@ export class MyraaAudioSession {
           if (data.type === "memory_sync" && data.memories) {
             if (this.onMemorySync) {
               this.onMemorySync(data.memories);
+            }
+          }
+
+          // Handle whiteboard commands from AI
+          if (data.type === "whiteboard_command" && data.command) {
+            if (this.onWhiteboardCommand) {
+              this.onWhiteboardCommand(data.command);
             }
           }
 

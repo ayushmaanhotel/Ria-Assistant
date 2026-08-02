@@ -1,224 +1,278 @@
-import React, { useState, useEffect } from "react";
-import { InteractiveWhiteboard } from "./InteractiveWhiteboard";
+import React, { useState, useEffect, useRef, DragEvent } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
-  FileText,
+  Lock,
+  Shield,
+  MessageSquare,
+  PenTool,
+  FolderLock,
   Send,
   Plus,
-  Shield,
-  Eye,
-  RefreshCw,
-  Sparkles,
-  Folder,
-  FileCode,
-  LockKeyhole,
   Trash2,
-  KeyRound,
-  ShieldAlert,
-  PenTool
-} from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+  FileText,
+  File as FileIcon,
+  LockKeyhole,
+  AlertCircle,
+  Eye,
+  Copy,
+  FileUp,
+  Loader2,
+  RefreshCw,
+  Search,
+  Upload,
+  Download
+} from 'lucide-react';
+import { InteractiveWhiteboard } from './InteractiveWhiteboard';
 
 interface PrivateRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   assistantName: string;
+  aiCommands?: any[];
+}
+
+interface Message {
+  id?: string;
+  text: string;
+  sender: 'user' | 'assistant';
+  time?: string;
+  timestamp?: string;
+  attachment?: string;
+  attachments?: { name: string; type: string; url?: string }[];
 }
 
 interface VaultFile {
   name: string;
-  path: string;
-  size: number;
+  size: string;
   mtime: string;
-  isPdf: boolean;
-  isTxt: boolean;
+  type: string;
+  path: string;
 }
 
-export function PrivateRoomModal({ isOpen, onClose, assistantName }: PrivateRoomModalProps) {
+export function PrivateRoomModal({
+  isOpen,
+  onClose,
+  assistantName,
+  aiCommands,
+}: PrivateRoomModalProps) {
+  const [activeTab, setActiveTab] = useState<'chat' | 'board' | 'vault'>('chat');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [files, setFiles] = useState<VaultFile[]>([]);
-  const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "whiteboard" | "vault">("chat");
+  const [chatInput, setChatInput] = useState('');
+  const [vaultSearch, setVaultSearch] = useState('');
+  
+  const [selectedFile, setSelectedFile] = useState<VaultFile | null>(null);
+  const [filePreviewContent, setFilePreviewContent] = useState<string>('');
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
-  // Private Messaging State
-  const [messages, setMessages] = useState<
-    { id?: string; sender: "user" | "assistant"; text: string; time: string; attachment?: string }[]
-  >([
-    {
-      id: "msg_welcome",
-      sender: "assistant",
-      text: `Welcome to our Private Conversation Room, Ayush! This room is 100% private and end-to-end isolated. Here, I can share documents, PDF notes, and private files directly with you.`,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    }
-  ]);
-  const [inputText, setInputText] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const [docCreatorOpen, setDocCreatorOpen] = useState(false);
+  const [docTitle, setDocTitle] = useState('');
+  const [docFormat, setDocFormat] = useState<'TXT' | 'PDF'>('TXT');
+  const [docContent, setDocContent] = useState('');
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
 
-  // Password-Protected Message Deletion State (Password: BET)
-  const [showDeleteAuthModal, setShowDeleteAuthModal] = useState(false);
-  const [deletePasswordInput, setDeletePasswordInput] = useState("");
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Document Generator state
-  const [docTitle, setDocTitle] = useState("");
-  const [docContent, setDocContent] = useState("");
-  const [docFormat, setDocFormat] = useState<"pdf" | "txt">("pdf");
-  const [showDocCreator, setShowDocCreator] = useState(false);
-
-  // Preview state
-  const [previewContent, setPreviewContent] = useState<string | null>(null);
-  const [previewTitle, setPreviewTitle] = useState<string | null>(null);
-
-  const fetchMessages = async () => {
-    try {
-      const res = await fetch("/api/private-room/messages");
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.messages)) {
-        setMessages(data.messages);
-      }
-    } catch {}
+  // Theme based on assistant
+  const getThemeColors = () => {
+    const name = assistantName.toLowerCase();
+    if (name.includes('myraa')) return 'border-purple-500/20 shadow-[0_0_80px_rgba(168,85,247,0.15)]';
+    if (name.includes('ria')) return 'border-cyan-500/20 shadow-[0_0_80px_rgba(6,182,212,0.15)]';
+    if (name.includes('mike')) return 'border-amber-500/20 shadow-[0_0_80px_rgba(245,158,11,0.15)]';
+    return 'border-purple-500/20 shadow-[0_0_80px_rgba(168,85,247,0.15)]';
   };
 
-  const fetchVaultFiles = async () => {
-    setLoadingFiles(true);
+  const getAssistantAccent = () => {
+    const name = assistantName.toLowerCase();
+    if (name.includes('myraa')) return 'text-purple-400';
+    if (name.includes('ria')) return 'text-cyan-400';
+    if (name.includes('mike')) return 'text-amber-400';
+    return 'text-purple-400';
+  };
+
+  // Data Fetching
+  const fetchMessages = async () => {
     try {
-      const res = await fetch("/api/private-room/files");
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.files)) {
-        setFiles(data.files);
+      const res = await fetch('/api/private-room/messages');
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages || []);
       }
-    } catch {
-      /* ignore */
-    } finally {
-      setLoadingFiles(false);
+    } catch (err) {
+      console.error('Failed to fetch messages', err);
+    }
+  };
+
+  const fetchFiles = async () => {
+    try {
+      const res = await fetch('/api/private-room/files');
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data.files || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch files', err);
     }
   };
 
   useEffect(() => {
     if (isOpen) {
       fetchMessages();
-      fetchVaultFiles();
-      const interval = setInterval(() => {
-        fetchMessages();
-        fetchVaultFiles();
-      }, 2000);
-      return () => clearInterval(interval);
+      fetchFiles();
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (activeTab === 'chat' && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, activeTab]);
+
+  // Actions
   const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
-    const currentText = inputText.trim();
-    setInputText("");
+    if (!chatInput.trim()) return;
+    const userText = chatInput.trim();
+    setChatInput('');
+
+    const tempMsg: Message = {
+      id: Date.now().toString(),
+      text: userText,
+      sender: 'user',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages(prev => [...prev, tempMsg]);
 
     try {
-      const res = await fetch("/api/private-room/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: currentText })
+      const res = await fetch('/api/private-room/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: userText }),
       });
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.messages)) {
-        setMessages(data.messages);
-        fetchVaultFiles();
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.messages)) {
+          setMessages(data.messages);
+          fetchFiles();
+        }
       }
-    } catch {}
+    } catch (err) {
+      console.error('Send error', err);
+    }
   };
 
-  const handleCreateDocument = async () => {
-    if (!docTitle.trim() || !docContent.trim()) return;
+  const handleDeleteMessage = async () => {
+    if (passwordInput !== 'BET') {
+      setPasswordError('Invalid Password');
+      return;
+    }
+    try {
+      const res = await fetch('/api/private-room/messages/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: messageToDelete, password: passwordInput }),
+      });
+      if (res.ok) {
+        setMessages(prev => prev.filter(m => m.id !== messageToDelete));
+        setAuthModalOpen(false);
+        setPasswordInput('');
+        setPasswordError('');
+      } else {
+        setPasswordError('Failed to delete message');
+      }
+    } catch (err) {
+      setPasswordError('Network error');
+    }
+  };
+
+  const handleGenerateDoc = async () => {
+    if (!docTitle || !docContent) return;
     setIsGeneratingDoc(true);
     try {
-      const filename = `${docTitle.toLowerCase().replace(/[^a-z0-9]/g, "_")}.${docFormat}`;
-      const res = await fetch("/api/private-room/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename,
-          title: docTitle,
-          content: docContent,
-          format: docFormat
-        })
+      const res = await fetch('/api/private-room/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: docTitle, format: docFormat, content: docContent }),
       });
-      const data = await res.json();
-      if (data.ok) {
-        if (Array.isArray(data.messages)) {
-          setMessages(data.messages);
-        }
-        setDocTitle("");
-        setDocContent("");
-        setShowDocCreator(false);
-        fetchVaultFiles();
+      if (res.ok) {
+        setDocCreatorOpen(false);
+        setDocTitle('');
+        setDocContent('');
+        fetchFiles();
       }
-    } catch (e: any) {
-      alert(`Document generation error: ${e.message}`);
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsGeneratingDoc(false);
     }
   };
 
-  const handleSaveWhiteboardNotes = async (title: string, content: string) => {
+  const handleFileUpload = async (uploadedFiles: FileList | File[]) => {
+    setIsUploading(true);
+    const formData = new FormData();
+    Array.from(uploadedFiles).forEach(f => formData.append('files', f));
+
     try {
-      const res = await fetch("/api/private-room/documents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title || "Whiteboard Lesson Notes",
-          content: content,
-          format: "pdf"
-        })
+      const res = await fetch('/api/private-room/upload', {
+        method: 'POST',
+        body: formData,
       });
-      const data = await res.json();
-      if (data.ok) {
-        fetchVaultFiles();
-        fetchMessages();
+      if (res.ok) {
+        fetchFiles();
       }
-    } catch {}
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUploading(false);
+      setIsDragging(false);
+    }
   };
 
   const handlePreviewFile = async (file: VaultFile) => {
+    setSelectedFile(file);
+    if (file.type === '.pdf') {
+      setFilePreviewContent('PDF preview not fully supported in simple text viewer. Download to view.');
+      return;
+    }
+    setIsPreviewLoading(true);
     try {
       const res = await fetch(`/api/private-room/file-content?path=${encodeURIComponent(file.path)}`);
-      const data = await res.json();
-      if (data.ok) {
-        setPreviewTitle(file.name);
-        setPreviewContent(data.content);
+      if (res.ok) {
+        const data = await res.json();
+        setFilePreviewContent(data.content || 'No content');
+      } else {
+        setFilePreviewContent('Failed to load content.');
       }
-    } catch {
-      alert("Failed to load file preview.");
+    } catch (err) {
+      setFilePreviewContent('Network error while fetching content.');
+    } finally {
+      setIsPreviewLoading(false);
     }
   };
 
-  const handleExecuteDelete = async () => {
-    if (deletePasswordInput.trim() !== "BET") {
-      setDeleteError("Access Denied: Password 'BET' required to delete private history.");
-      return;
-    }
-    setIsDeleting(true);
-    setDeleteError(null);
-    try {
-      const res = await fetch("/api/private-room/messages/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          password: deletePasswordInput.trim(),
-          msgId: deleteTargetId || undefined
-        })
-      });
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.messages)) {
-        setMessages(data.messages);
-        setShowDeleteAuthModal(false);
-        setDeletePasswordInput("");
-        setDeleteTargetId(null);
-      } else {
-        setDeleteError(data.error || "Deletion failed.");
-      }
-    } catch (e: any) {
-      setDeleteError(e.message || "Failed to reach server.");
-    } finally {
-      setIsDeleting(false);
+  // Drag and drop handlers
+  const onDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const onDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileUpload(e.dataTransfer.files);
     }
   };
 
@@ -226,369 +280,528 @@ export function PrivateRoomModal({ isOpen, onClose, assistantName }: PrivateRoom
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+
+        {/* Main Modal Shell */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="w-full max-w-4xl h-[650px] bg-slate-950/90 border border-purple-500/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-2xl relative"
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className={`relative w-full max-w-6xl h-[85vh] bg-[#04060f]/90 backdrop-blur-2xl rounded-2xl border ${getThemeColors()} flex flex-col overflow-hidden shadow-2xl`}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
         >
-          {/* Password Protection Authentication Modal */}
-          {showDeleteAuthModal && (
-            <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md bg-slate-900 border border-red-500/40 rounded-3xl p-6 shadow-2xl space-y-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
-                    <KeyRound size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-white font-sans">
-                      {deleteTargetId ? "Delete Private Message" : "Clear Entire Private Chat"}
-                    </h3>
-                    <p className="text-xs text-slate-400 font-mono">
-                      Password Protection Required
-                    </p>
-                  </div>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+                <Lock className="w-4 h-4 text-green-400" />
+                <span className="text-xs font-semibold text-green-400 tracking-wider">END-TO-END ISOLATED VAULT</span>
+              </div>
+              <div className="h-6 w-[1px] bg-white/10" />
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border border-white/10 flex items-center justify-center shadow-inner`}>
+                  <Shield className={`w-4 h-4 ${getAssistantAccent()}`} />
                 </div>
+                <span className="text-sm font-medium text-white/90 uppercase tracking-wide">
+                  {assistantName} PRIVATE WORKSPACE
+                </span>
+              </div>
+            </div>
+            
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-white/10 transition-transform hover:scale-105 active:scale-95 text-white/50 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-mono text-slate-300">
-                    Enter Passcode (Password: <span className="text-red-400 font-bold">BET</span>):
-                  </label>
-                  <input
-                    type="password"
-                    value={deletePasswordInput}
-                    onChange={(e) => {
-                      setDeletePasswordInput(e.target.value);
-                      setDeleteError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleExecuteDelete();
-                    }}
-                    placeholder="Enter password to confirm..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-white/10 text-white font-mono text-sm focus:outline-none focus:border-red-500/60"
-                    autoFocus
-                  />
-                  {deleteError && (
-                    <p className="text-xs text-red-400 font-mono flex items-center gap-1">
-                      <ShieldAlert size={12} /> {deleteError}
-                    </p>
+          {/* Tab Bar */}
+          <div className="flex justify-center py-4 border-b border-white/5">
+            <div className="flex items-center gap-2 p-1 rounded-full bg-black/40 border border-white/10 backdrop-blur-md">
+              {[
+                { id: 'chat', label: 'Private Chat', icon: MessageSquare, badge: messages.length },
+                { id: 'board', label: 'Blackboard', icon: PenTool },
+                { id: 'vault', label: 'Vault Explorer', icon: FolderLock, badge: files.length }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`relative flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                    activeTab === tab.id ? 'text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                  }`}
+                >
+                  {activeTab === tab.id && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute inset-0 bg-white/10 rounded-full border border-white/20"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                    />
                   )}
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <button
-                    onClick={() => {
-                      setShowDeleteAuthModal(false);
-                      setDeleteError(null);
-                      setDeletePasswordInput("");
-                    }}
-                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleExecuteDelete}
-                    disabled={isDeleting}
-                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-lg shadow-red-600/20"
-                  >
-                    {isDeleting ? <RefreshCw size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                    Confirm Delete
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-
-          {/* Header Bar */}
-          <div className="px-6 py-4 border-b border-purple-500/20 bg-purple-950/20 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-lg shadow-purple-500/10">
-                <LockKeyhole size={20} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold text-white tracking-wide font-sans">
-                    Private Conversation Room &amp; Vault
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-[9px] font-mono text-purple-300 flex items-center gap-1">
-                    <Shield size={10} /> E2E SECURE
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 font-mono">
-                  Direct private communication channel &amp; PDF/document hub with {assistantName}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setDeleteTargetId(null);
-                  setDeletePasswordInput("");
-                  setDeleteError(null);
-                  setShowDeleteAuthModal(true);
-                }}
-                className="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 text-xs font-mono flex items-center gap-1.5 transition shadow-lg shadow-red-500/5 cursor-pointer"
-                title="Clear Entire Private Room Chat (Password Required: BET)"
-              >
-                <Trash2 size={13} className="text-red-400" />
-                <span>Clear Chat</span>
-              </button>
-
-              <div className="flex bg-black/40 p-1 rounded-xl border border-white/10">
-                <button
-                  onClick={() => setActiveTab("chat")}
-                  className={`px-3 py-1 rounded-lg text-xs font-mono transition ${
-                    activeTab === "chat" ? "bg-purple-600 text-white shadow" : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  Private Chat
+                  <tab.icon size={14} className="relative z-10" />
+                  <span className="relative z-10">{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="relative z-10 flex items-center justify-center w-5 h-5 text-[10px] font-bold text-white bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]">
+                      {tab.badge}
+                    </span>
+                  )}
                 </button>
-                <button
-                  onClick={() => setActiveTab("whiteboard")}
-                  className={`px-3 py-1 rounded-lg text-xs font-mono transition flex items-center gap-1.5 ${
-                    activeTab === "whiteboard"
-                      ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_12px_rgba(6,182,212,0.5)] font-bold"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <PenTool size={13} className="text-cyan-300 animate-pulse" />
-                  <span>Whiteboard</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveTab("vault");
-                    fetchVaultFiles();
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-mono transition flex items-center gap-1 ${
-                    activeTab === "vault" ? "bg-purple-600 text-white shadow" : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Folder size={12} /> Document Vault ({files.length})
-                </button>
-              </div>
-
-              <button
-                onClick={onClose}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition"
-              >
-                <X size={16} />
-              </button>
+              ))}
             </div>
           </div>
 
-          {/* Main Body */}
-          <div className="flex-1 flex overflow-hidden">
-            {activeTab === "chat" ? (
-              <div className="flex-1 flex flex-col h-full bg-slate-900/30">
-                {/* Message Log */}
-                <div className="flex-1 p-6 overflow-y-auto space-y-4">
-                  {messages.map((m, idx) => (
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-hidden relative">
+            
+            {/* CHAT TAB */}
+            {activeTab === 'chat' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="h-full flex flex-col"
+              >
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                  <div className="flex justify-center">
+                    <span className="px-3 py-1 text-xs font-medium text-white/40 bg-white/5 rounded-full border border-white/5">
+                      End-to-End Encrypted Tunnel Active
+                    </span>
+                  </div>
+                  
+                  {messages.map((msg) => (
                     <div
-                      key={idx}
-                      className={`flex flex-col group ${m.sender === "user" ? "items-end" : "items-start"}`}
+                      key={msg.id}
+                      className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} group`}
                     >
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-sans relative ${
-                          m.sender === "user"
-                            ? "bg-purple-600 text-white rounded-br-none shadow-lg shadow-purple-600/20"
-                            : "bg-slate-800/80 border border-purple-500/20 text-slate-100 rounded-bl-none"
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap">{m.text}</p>
+                      <div className={`flex gap-3 max-w-[80%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center border ${
+                          msg.sender === 'user' ? 'bg-indigo-500/20 border-indigo-400/30' : 'bg-[#0c0f20] border-white/10'
+                        }`}>
+                          {msg.sender === 'user' ? <span className="text-xs text-indigo-300">ME</span> : <Shield className={`w-4 h-4 ${getAssistantAccent()}`} />}
+                        </div>
+                        
+                        <div className="flex flex-col gap-1">
+                          <div className={`relative p-4 rounded-2xl ${
+                            msg.sender === 'user' 
+                              ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border border-purple-400/30 text-white rounded-tr-sm'
+                              : 'bg-[#0c0f20] border border-white/10 shadow-lg text-white/90 rounded-tl-sm'
+                          }`}>
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                            
+                            {/* Attachments */}
+                            {msg.attachment && (
+                              <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-xs cursor-pointer hover:bg-white/10 transition-colors">
+                                <FileIcon size={12} className="text-amber-400" />
+                                <span>{msg.attachment}</span>
+                              </div>
+                            )}
+                            {msg.attachments && msg.attachments.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {msg.attachments.map((att, i) => (
+                                  <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg text-xs cursor-pointer hover:bg-white/10 transition-colors">
+                                    <FileIcon size={12} className={att.type === 'pdf' ? 'text-amber-400' : 'text-cyan-400'} />
+                                    <span>{att.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
-                        {m.attachment && (
-                          <div className="mt-3 pt-2 border-t border-white/20 flex items-center justify-between gap-3 text-xs bg-black/20 p-2 rounded-xl">
-                            <div className="flex items-center gap-2">
-                              <FileText size={16} className="text-purple-300" />
-                              <span className="font-mono font-bold">{m.attachment}</span>
+                            {/* Message Actions */}
+                            <div className={`absolute top-2 ${msg.sender === 'user' ? '-left-10' : '-right-10'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                              {msg.id && (
+                                <button
+                                  onClick={() => { setMessageToDelete(msg.id!); setAuthModalOpen(true); }}
+                                  className="p-1.5 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
                             </div>
-                            <button
-                              onClick={() => {
-                                setActiveTab("vault");
-                                fetchVaultFiles();
-                              }}
-                              className="px-2 py-1 bg-purple-500/30 hover:bg-purple-500/50 text-white rounded-lg font-mono text-[10px]"
-                            >
-                              View in Vault
-                            </button>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 px-1">
-                        <span className="text-[9px] font-mono text-slate-500">{m.time}</span>
-                        {m.id && m.id !== "msg_welcome" && (
-                          <button
-                            onClick={() => {
-                              setDeleteTargetId(m.id || null);
-                              setDeletePasswordInput("");
-                              setDeleteError(null);
-                              setShowDeleteAuthModal(true);
-                            }}
-                            className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition cursor-pointer"
-                            title="Delete message (Password: BET)"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        )}
+                          <span className={`text-[10px] text-white/30 px-1 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                            {msg.time || (msg.timestamp ? (isNaN(Date.parse(msg.timestamp)) ? msg.timestamp : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '')}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
+                  <div ref={chatEndRef} />
                 </div>
 
-                {/* Input Bar & Document Trigger */}
-                <div className="p-4 border-t border-purple-500/20 bg-slate-950/60 space-y-3">
-                  {showDocCreator && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      className="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/30 space-y-3"
-                    >
-                      <div className="flex items-center justify-between text-xs font-mono text-purple-300">
-                        <span>Generate &amp; Share Private Document</span>
-                        <button onClick={() => setShowDocCreator(false)} className="text-slate-400 hover:text-white">
-                          <X size={14} />
-                        </button>
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Document Title (e.g. Project Strategy Report)"
-                          value={docTitle}
-                          onChange={(e) => setDocTitle(e.target.value)}
-                          className="flex-1 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-purple-400"
-                        />
-                        <select
-                          value={docFormat}
-                          onChange={(e) => setDocFormat(e.target.value as "pdf" | "txt")}
-                          className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs text-purple-300 font-mono focus:outline-none"
-                        >
-                          <option value="pdf">PDF Document (.pdf)</option>
-                          <option value="txt">Text File (.txt)</option>
-                        </select>
-                      </div>
-                      <textarea
-                        rows={3}
-                        placeholder="Type document content here..."
-                        value={docContent}
-                        onChange={(e) => setDocContent(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-purple-400 resize-none font-mono"
-                      />
-                      <button
-                        onClick={handleCreateDocument}
-                        disabled={isGeneratingDoc}
-                        className="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold transition flex items-center justify-center gap-2"
-                      >
-                        {isGeneratingDoc ? (
-                          <span>Generating Document...</span>
-                        ) : (
-                          <>
-                            <Sparkles size={14} /> Generate &amp; Save to Private Vault
-                          </>
-                        )}
-                      </button>
-                    </motion.div>
-                  )}
-
-                  <div className="flex items-center gap-2">
+                {/* Chat Input */}
+                <div className="p-6 bg-gradient-to-t from-black/80 to-transparent">
+                  <div className="relative flex items-center bg-[#0a0d1d] border border-white/15 rounded-xl focus-within:border-purple-400/60 focus-within:shadow-[0_0_20px_rgba(168,85,247,0.1)] transition-all">
                     <button
-                      onClick={() => setShowDocCreator(!showDocCreator)}
-                      className="px-3 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 text-purple-300 font-mono text-xs flex items-center gap-1.5 transition"
+                      onClick={() => setDocCreatorOpen(true)}
+                      className="p-3 text-white/50 hover:text-white transition-colors ml-1"
+                      title="Quick Document Creator"
                     >
-                      <Plus size={14} /> Share PDF/TXT
+                      <Plus size={20} />
                     </button>
                     <input
                       type="text"
-                      placeholder={`Send a private message to ${assistantName}...`}
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                      className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-purple-400 transition"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                      placeholder="Type a highly secure message..."
+                      className="flex-1 bg-transparent text-white placeholder-white/30 px-2 py-4 outline-none text-sm"
                     />
                     <button
                       onClick={handleSendMessage}
-                      className="p-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white transition shadow-lg shadow-purple-600/30"
+                      disabled={!chatInput.trim()}
+                      className="p-3 mr-2 text-purple-400 hover:text-purple-300 disabled:text-white/20 transition-colors"
                     >
-                      <Send size={16} />
+                      <Send size={20} />
                     </button>
                   </div>
                 </div>
-              </div>
-            ) : activeTab === "whiteboard" ? (
-              <div className="flex-1 flex h-full overflow-hidden p-4 bg-slate-900/60">
-                <InteractiveWhiteboard
-                  assistantName={assistantName}
-                  onSaveNotes={handleSaveWhiteboardNotes}
-                />
-              </div>
-            ) : (
-              <div className="flex-1 flex h-full overflow-hidden bg-slate-900/40">
-                <div className="w-1/2 border-r border-white/10 flex flex-col p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
-                      Vault Files ({files.length})
-                    </span>
-                    <button
-                      onClick={fetchVaultFiles}
-                      className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5"
-                    >
-                      <RefreshCw size={14} className={loadingFiles ? "animate-spin" : ""} />
-                    </button>
+              </motion.div>
+            )}
+
+            {/* BLACKBOARD TAB */}
+            {activeTab === 'board' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="h-full bg-black/20"
+              >
+                <InteractiveWhiteboard assistantName={assistantName} aiCommands={aiCommands} />
+              </motion.div>
+            )}
+
+            {/* VAULT EXPLORER TAB */}
+            {activeTab === 'vault' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="h-full flex"
+              >
+                {/* Left Half: File Explorer */}
+                <div className="w-1/2 border-r border-white/10 flex flex-col bg-black/20">
+                  <div className="p-4 border-b border-white/10 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-white/80 flex items-center gap-2">
+                        <FolderLock size={16} className="text-purple-400" />
+                        Encrypted Storage
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 text-xs font-mono">{files.length}</span>
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          multiple
+                          ref={fileInputRef}
+                          className="hidden"
+                          onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors border border-white/10"
+                          title="Upload Files"
+                        >
+                          <Upload size={14} />
+                        </button>
+                        <button
+                          onClick={fetchFiles}
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors border border-white/10"
+                        >
+                          <RefreshCw size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                      <input
+                        type="text"
+                        placeholder="Search vault..."
+                        value={vaultSearch}
+                        onChange={(e) => setVaultSearch(e.target.value)}
+                        className="w-full bg-[#0a0d1d] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-white/30 focus:border-purple-400/50 outline-none transition-colors"
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto space-y-2">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                     {files.length === 0 ? (
-                      <div className="text-center py-12 text-slate-500 text-xs font-mono">
-                        No private documents generated yet. Use the chat tab to generate PDF or TXT reports!
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-white/10 rounded-xl">
+                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                          <FileUp className="w-8 h-8 text-white/20" />
+                        </div>
+                        <p className="text-sm font-medium text-white/60">Vault is empty</p>
+                        <p className="text-xs text-white/40 mt-1">Drag and drop files here or use the upload button.</p>
                       </div>
                     ) : (
-                      files.map((f, i) => (
+                      files.filter(f => f.name.toLowerCase().includes(vaultSearch.toLowerCase())).map((file, idx) => (
                         <div
-                          key={i}
-                          onClick={() => handlePreviewFile(f)}
-                          className="p-3 rounded-xl bg-white/5 hover:bg-purple-500/10 border border-white/5 hover:border-purple-500/30 transition cursor-pointer flex items-center justify-between group"
+                          key={idx}
+                          className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
+                            selectedFile?.path === file.path 
+                              ? 'bg-purple-500/10 border-purple-500/30' 
+                              : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/15'
+                          }`}
+                          onClick={() => handlePreviewFile(file)}
                         >
-                          <div className="flex items-center gap-2.5 overflow-hidden">
-                            <FileText size={18} className="text-purple-400 flex-shrink-0" />
-                            <div className="truncate">
-                              <div className="text-xs font-mono font-bold text-slate-200 truncate">{f.name}</div>
-                              <div className="text-[9px] font-mono text-slate-400">
-                                {(f.size / 1024).toFixed(1)} KB • {new Date(f.mtime).toLocaleDateString()}
-                              </div>
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="p-2 rounded-lg bg-black/40 border border-white/5">
+                              <FileIcon size={16} className={
+                                file.type === '.pdf' ? 'text-red-400' :
+                                file.type === '.txt' ? 'text-cyan-400' : 'text-purple-400'
+                              } />
+                            </div>
+                            <div className="flex flex-col overflow-hidden">
+                              <span className="text-sm font-medium text-white/90 truncate">{file.name}</span>
+                              <span className="text-xs text-white/40">{file.size} • {new Date(file.mtime).toLocaleDateString()}</span>
                             </div>
                           </div>
-                          <Eye size={14} className="text-slate-500 group-hover:text-purple-300 flex-shrink-0" />
+                          
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-1.5 rounded-md hover:bg-white/10 text-white/50 hover:text-white" title="Preview">
+                              <Eye size={14} />
+                            </button>
+                            <button className="p-1.5 rounded-md hover:bg-white/10 text-white/50 hover:text-white" title="Copy Path" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(file.path); }}>
+                              <Copy size={14} />
+                            </button>
+                          </div>
                         </div>
                       ))
                     )}
                   </div>
                 </div>
 
-                <div className="w-1/2 p-4 flex flex-col overflow-hidden bg-black/40">
-                  <span className="text-xs font-mono text-purple-400 uppercase tracking-wider mb-2">
-                    {previewTitle ? `Preview: ${previewTitle}` : "Document Viewer"}
-                  </span>
-                  {previewContent ? (
-                    <div className="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-xl border border-white/10 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
-                      {previewContent}
-                    </div>
+                {/* Right Half: Document Viewer */}
+                <div className="w-1/2 flex flex-col bg-[#050711]">
+                  {selectedFile ? (
+                    <>
+                      <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <FileText size={16} className="text-white/50 flex-shrink-0" />
+                          <h4 className="text-sm font-medium text-white/80 truncate">{selectedFile.name}</h4>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => navigator.clipboard.writeText(filePreviewContent)}
+                            className="flex items-center gap-1 px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-xs text-white/70 transition-colors border border-white/10"
+                          >
+                            <Copy size={12} /> Copy Text
+                          </button>
+                          <button
+                            onClick={() => setSelectedFile(null)}
+                            className="p-1 rounded bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                        {isPreviewLoading ? (
+                          <div className="flex flex-col items-center justify-center h-full text-white/40 gap-3">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            <span className="text-sm">Decrypting contents...</span>
+                          </div>
+                        ) : (
+                          <div className="relative group h-full">
+                            <pre className="text-[13px] text-white/70 font-mono leading-relaxed whitespace-pre-wrap break-words font-light">
+                              {filePreviewContent}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2 border-t border-white/10 bg-black/40 flex justify-between text-[10px] text-white/30 uppercase tracking-widest font-semibold">
+                        <span>{selectedFile.type.replace('.', '')} Document</span>
+                        <span>{filePreviewContent.length} Chars</span>
+                      </div>
+                    </>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-slate-600 text-xs font-mono">
-                      <FileCode size={32} className="mb-2 opacity-50" />
-                      Select a file from the vault to read its content.
+                    <div className="flex-1 flex flex-col items-center justify-center text-white/30 gap-4">
+                      <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/5 shadow-inner">
+                        <Eye className="w-8 h-8 opacity-50" />
+                      </div>
+                      <span className="text-sm font-medium">Select a file to preview its decrypted contents</span>
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )}
+
+            {/* Drag Drop Overlay */}
+            <AnimatePresence>
+              {isDragging && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-50 bg-[#04060f]/90 backdrop-blur-md border-4 border-dashed border-purple-500/50 rounded-2xl flex flex-col items-center justify-center pointer-events-none"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="w-24 h-24 rounded-full bg-purple-500/20 flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(168,85,247,0.3)]"
+                  >
+                    <FileUp className="w-10 h-10 text-purple-400" />
+                  </motion.div>
+                  <h2 className="text-xl font-bold text-white mb-2">Drop files here to upload to Private Vault</h2>
+                  <p className="text-purple-300/60 text-sm">(Auto-ingested to AI Knowledge Base)</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
           </div>
         </motion.div>
       </div>
+
+      {/* Password Auth Modal */}
+      <AnimatePresence>
+        {authModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={() => { setAuthModalOpen(false); setPasswordError(''); setPasswordInput(''); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-[#0a0d1d] border border-red-500/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.15)] flex flex-col gap-4"
+            >
+              <div className="flex items-center gap-3 text-red-400 border-b border-white/10 pb-4">
+                <LockKeyhole size={24} />
+                <h3 className="text-lg font-semibold text-white">Authorized Deletion Required</h3>
+              </div>
+              
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Access Password</label>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Enter passphrase..."
+                  className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-red-500/50 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {passwordError && (
+                <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">
+                  <AlertCircle size={14} />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-2">
+                <button
+                  onClick={() => { setAuthModalOpen(false); setPasswordError(''); setPasswordInput(''); }}
+                  className="flex-1 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors border border-transparent"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteMessage}
+                  className="flex-1 py-2 rounded-lg text-sm font-medium text-white bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all"
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Document Creator Overlay Modal */}
+      <AnimatePresence>
+        {docCreatorOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setDocCreatorOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-[#090c1a] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
+                <div className="flex items-center gap-2 text-white">
+                  <FileText className="text-purple-400" size={18} />
+                  <h3 className="font-semibold text-sm">Create Vault Document</h3>
+                </div>
+                <button onClick={() => setDocCreatorOpen(false)} className="text-white/50 hover:text-white">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-6 flex flex-col gap-5">
+                <div className="flex gap-4">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Document Title</label>
+                    <input
+                      type="text"
+                      value={docTitle}
+                      onChange={(e) => setDocTitle(e.target.value)}
+                      placeholder="e.g., Project_Alpha_Notes"
+                      className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:border-purple-400/50 focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="w-32 space-y-1">
+                    <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Format</label>
+                    <select
+                      value={docFormat}
+                      onChange={(e) => setDocFormat(e.target.value as any)}
+                      className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:border-purple-400/50 focus:outline-none transition-colors appearance-none"
+                    >
+                      <option value="TXT">TXT</option>
+                      <option value="PDF">PDF</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1 flex-1">
+                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Content</label>
+                  <textarea
+                    value={docContent}
+                    onChange={(e) => setDocContent(e.target.value)}
+                    placeholder="Enter document contents here..."
+                    className="w-full h-64 bg-black/50 border border-white/10 rounded-lg p-4 text-white text-sm focus:border-purple-400/50 focus:outline-none transition-colors resize-none font-mono"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setDocCreatorOpen(false)}
+                    className="px-5 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleGenerateDoc}
+                    disabled={isGeneratingDoc || !docTitle || !docContent}
+                    className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium text-white bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:hover:bg-purple-600 transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                  >
+                    {isGeneratingDoc ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                    {isGeneratingDoc ? 'Generating...' : 'Save to Vault'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </AnimatePresence>
   );
 }
