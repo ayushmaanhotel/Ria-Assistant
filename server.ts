@@ -2515,8 +2515,11 @@ async function startServer() {
 
   const appRoot = process.env.MYRAA_APP_ROOT || process.cwd();
 
-  // Serve custom static assets folder
-  app.use("/assets", express.static(path.join(appRoot, "assets")));
+  // Serve custom static assets and public folder with HTTP caching
+  const staticOpts = { maxAge: '1d', etag: true };
+  app.use("/assets", express.static(path.join(appRoot, "assets"), staticOpts));
+  app.use("/assets", express.static(path.join(appRoot, "public", "assets"), staticOpts));
+  app.use(express.static(path.join(appRoot, "public"), staticOpts));
 
   // Express Static assets / Vite Dev Middleware configuration
   if (process.env.NODE_ENV !== "production") {

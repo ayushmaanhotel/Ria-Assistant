@@ -43,11 +43,12 @@ let mainWindow = null;
 let splashWindow = null;
 let isQuitting = false;
 
-// Disable hardware acceleration to prevent Chromium GPU VBS/HVCI hypervisor faults on Snapdragon ARM64
+// Enable GPU Hardware Acceleration for high performance 60 FPS rendering & smooth video decoding
 try {
-  app.disableHardwareAcceleration();
-  app.commandLine.appendSwitch('disable-gpu');
-  app.commandLine.appendSwitch('disable-software-rasterizer');
+  app.commandLine.appendSwitch('ignore-gpu-blocklist');
+  app.commandLine.appendSwitch('enable-gpu-rasterization');
+  app.commandLine.appendSwitch('enable-zero-copy');
+  app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
 } catch (e) {
   /* best effort */
 }

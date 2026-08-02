@@ -782,7 +782,7 @@ export default function App() {
           {/* Bottom Avatar Widget */}
           <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={() => setShowCharacterSelector(true)}>
             <div className="relative w-10 h-10 rounded-full border border-purple-500/40 p-0.5 bg-gradient-to-tr from-purple-900 to-indigo-900 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-              <img src="/assets/avatar_thumb.png" onError={(e) => (e.currentTarget.src = "/assets/icon.png")} className="w-full h-full rounded-full object-cover" />
+              <img src="/assets/ria_portrait.jpg" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/icon.png"; }} className="w-full h-full rounded-full object-cover" alt="Avatar" />
               <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#090b1c]" />
             </div>
             <span className="text-[8px] font-bold text-emerald-400 tracking-wider">ONLINE</span>
