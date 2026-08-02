@@ -473,7 +473,7 @@ export function PrivateRoomModal({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="h-full bg-black/20"
+                className="h-full w-full min-h-0 flex flex-col overflow-hidden bg-black/20"
               >
                 <InteractiveWhiteboard assistantName={assistantName} aiCommands={aiCommands} />
               </motion.div>
