@@ -985,6 +985,15 @@ export default function App() {
 
       </main>
 
+      {/* Holographic Projection Spotlight Light Cone Beam (Bottom Dock -> Character) */}
+      <div 
+        className="absolute bottom-16 left-1/2 -translate-x-1/2 w-[700px] h-[480px] pointer-events-none z-10 opacity-30 transform-gpu"
+        style={{
+          backgroundImage: 'linear-gradient(to top, rgba(147, 51, 234, 0.4), rgba(6, 182, 212, 0.15), transparent 90%)',
+          clipPath: 'polygon(35% 100%, 65% 100%, 95% 0%, 5% 0%)'
+        }}
+      />
+
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* ZONE 3: FIXED BOTTOM CONTROL DOCK                          */}
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -1122,6 +1131,14 @@ export default function App() {
               </button>
             )}
           </div>
+        </div>
+
+        {/* Wan Watermark Logo (Bottom Right) */}
+        <div className="absolute bottom-4 right-6 z-30 hidden sm:flex items-center gap-1.5 text-white/50 hover:text-white/80 transition-opacity font-display font-semibold text-xs tracking-wider select-none pointer-events-none">
+          <svg className="w-4 h-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+          </svg>
+          <span className="font-mono text-white/60 font-bold">Wan</span>
         </div>
       </footer>
 
