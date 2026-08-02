@@ -1678,9 +1678,10 @@ async function startServer() {
       
       const candidateModels = [
         process.env.GEMINI_LIVE_MODEL,
-        "gemini-2.0-flash-exp",
-        "gemini-2.0-flash-realtime-exp",
-        "models/gemini-2.0-flash-exp"
+        "gemini-2.5-flash-native-audio-latest",
+        "gemini-3.1-flash-live-preview",
+        "models/gemini-2.5-flash-native-audio-latest",
+        "models/gemini-3.1-flash-live-preview"
       ].filter(Boolean) as string[];
 
       let session: any = null;
@@ -1692,7 +1693,7 @@ async function startServer() {
           session = await ai.live.connect({
             model: modelCandidate,
         config: {
-          responseModalities: [Modality.AUDIO, Modality.TEXT],
+          responseModalities: [Modality.AUDIO],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: resolvedVoice } },
           },
@@ -2504,7 +2505,7 @@ async function startServer() {
             clientWs.send(JSON.stringify({ type: "interrupted" }));
           } else if (msg.audio) {
             session.sendRealtimeInput({
-              audio: { data: msg.audio, mimeType: "audio/pcm;rate=16000" }
+              media: { mimeType: "audio/pcm;rate=16000", data: msg.audio }
             });
           } else if (msg.type === "video" && msg.video) {
             session.sendRealtimeInput({
@@ -2574,7 +2575,8 @@ async function startServer() {
 
   server.on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {
-      console.warn(`[Server] Port ${PORT} already in use. Reusing server on port ${PORT}...`);
+      console.error(`[Server] Port ${PORT} is already in use by another process.`);
+      process.exit(1);
     } else {
       console.error("[Server] Critical listener error:", err.message);
     }

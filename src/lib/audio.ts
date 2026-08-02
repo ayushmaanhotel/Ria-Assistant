@@ -260,8 +260,8 @@ export class MyraaAudioSession {
           this.micProcessorNode.connect(this.inputAudioCtx.destination);
 
           let consecutiveHighRmsCount = 0;
-          const RMS_INTERRUPT_THRESHOLD = 0.02; // sensitive to normal speech (0.015-0.04)
-          const BACKGROUND_NOISE_FLOOR = 0.008;
+          const RMS_INTERRUPT_THRESHOLD = 0.03; // speech barge-in threshold
+          const BACKGROUND_NOISE_FLOOR = 0.0005; // sensitive noise floor so no quiet speech is dropped
 
           this.micProcessorNode.onaudioprocess = (e) => {
             if (this.currentState === "disconnected" || this.currentState === "connecting") return;
@@ -285,15 +285,9 @@ export class MyraaAudioSession {
                 }
               } else {
                 consecutiveHighRmsCount = 0;
-                if (rms < BACKGROUND_NOISE_FLOOR) {
-                  return;
-                }
               }
             } else {
               consecutiveHighRmsCount = 0;
-              if (rms < BACKGROUND_NOISE_FLOOR) {
-                return;
-              }
             }
 
             const currentSampleRate = this.inputAudioCtx?.sampleRate || 16000;
