@@ -33,7 +33,8 @@ import {
   LayoutGrid,
   HelpCircle,
   Bell,
-  Grid
+  Grid,
+  Send
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Memory, MemoryCategory } from "./lib/memoryTypes";
@@ -754,26 +755,27 @@ export default function App() {
         <aside className="w-20 shrink-0 bg-[#090b1c]/80 border border-white/10 rounded-2xl flex flex-col items-center justify-between py-5 backdrop-blur-md shadow-2xl">
           <div className="flex flex-col items-center gap-3 w-full px-2">
             {[
-              { id: 'home', label: 'HOME', icon: Home, active: true, action: () => {} },
-              { id: 'chat', label: 'CHAT', icon: MessageSquare, action: () => setShowPrivateRoom(true) },
-              { id: 'notes', label: 'NOTES', icon: FileText, action: () => setShowPrivateRoom(true) },
-              { id: 'tasks', label: 'TASKS', icon: CheckSquare, action: () => setShowCommandLauncher(true) },
-              { id: 'memory', label: 'MEMORY', icon: Brain, action: () => setShowMemoryDashboard(true) },
-              { id: 'tools', label: 'TOOLS', icon: LayoutGrid, action: () => setShowTelemetry(true) },
+              { id: 'memory', label: 'MEMORY CORE', icon: Brain, active: showMemoryDashboard, action: () => setShowMemoryDashboard(true) },
+              { id: 'chat', label: 'CHAT', icon: MessageSquare, active: showPrivateRoom, action: () => setShowPrivateRoom(true) },
+              { id: 'vault', label: 'VAULT', icon: Lock, active: false, action: () => setShowPrivateRoom(true) },
+              { id: 'tasks', label: 'TASKS', icon: CheckSquare, active: false, action: () => setShowCommandLauncher(true) },
+              { id: 'agents', label: 'AGENTS', icon: LayoutGrid, active: false, action: () => setShowTelemetry(true) },
+              { id: 'settings', label: 'SETTINGS', icon: SettingsIcon, active: showSettings, action: () => setShowSettings(!showSettings) },
             ].map((nav) => {
               const Icon = nav.icon;
+              const isActive = nav.active || (!showMemoryDashboard && !showPrivateRoom && !showSettings && nav.id === 'memory');
               return (
                 <button
                   key={nav.id}
                   onClick={nav.action}
-                  className={`w-full py-3 rounded-xl flex flex-col items-center gap-1 transition cursor-pointer ${
-                    nav.active
-                      ? 'bg-purple-600/30 border border-purple-500/50 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                  className={`w-full py-2.5 rounded-xl flex flex-col items-center gap-1 transition cursor-pointer ${
+                    isActive
+                      ? 'bg-purple-600/30 border border-purple-500/50 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.3)] font-bold'
                       : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                 >
-                  <Icon size={18} />
-                  <span className="text-[9px] font-bold tracking-wider">{nav.label}</span>
+                  <Icon size={16} />
+                  <span className="text-[8px] font-bold tracking-wider text-center">{nav.label}</span>
                 </button>
               );
             })}
@@ -818,18 +820,41 @@ export default function App() {
           </div>
 
           {/* Subtitle & Awaken Voice Action Button */}
-          <div className="relative z-30 flex flex-col items-center mb-6 space-y-3">
+          <div className="relative z-30 flex flex-col items-center mb-4 space-y-3">
             <span className="text-xs uppercase tracking-[0.25em] font-medium text-white/50 font-sans drop-shadow-md">
               CONNECT MEMORY CORE TO AWAKEN MYRAA VOICE
             </span>
 
             <button
               onClick={handleToggleConnection}
-              className="py-3 px-8 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs tracking-widest uppercase flex items-center gap-2.5 transition cursor-pointer shadow-[0_0_25px_rgba(168,85,247,0.4)] hover:scale-105 active:scale-95 border border-purple-400/40"
+              className="py-2.5 px-7 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs tracking-widest uppercase flex items-center gap-2.5 transition cursor-pointer shadow-[0_0_25px_rgba(168,85,247,0.4)] hover:scale-105 active:scale-95 border border-purple-400/40"
             >
-              <Mic size={16} className={state === "listening" ? "animate-pulse text-cyan-300" : ""} />
+              <Mic size={15} className={state === "listening" ? "animate-pulse text-cyan-300" : ""} />
               <span>{state === "disconnected" ? "AWAKEN VOICE" : state === "listening" ? "LISTENING..." : "SLEEP CORE"}</span>
             </button>
+          </div>
+
+          {/* Bottom Chat Prompt Input Bar (Matching Reference Screenshot) */}
+          <div className="w-full max-w-lg px-4 relative z-30 mb-3">
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl border border-purple-500/30 bg-[#090c24]/90 backdrop-blur-md shadow-[0_0_25px_rgba(168,85,247,0.15)]">
+              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shrink-0" />
+              <input
+                type="text"
+                placeholder="Ask Myraa anything..."
+                className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-sans"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                    setShowPrivateRoom(true);
+                  }
+                }}
+              />
+              <button
+                onClick={() => setShowPrivateRoom(true)}
+                className="p-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-400/40 text-purple-200 transition cursor-pointer shrink-0"
+              >
+                <Send size={13} />
+              </button>
+            </div>
           </div>
         </main>
       </div>

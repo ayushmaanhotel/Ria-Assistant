@@ -251,6 +251,44 @@ export function MemoryGraph({ memories, onSelectMemory, themeColor }: MemoryGrap
       }
       ctx.stroke();
 
+      // Draw Central Core Node (Myraa Core)
+      const cx = width / 2;
+      const cy = height / 2;
+
+      // Draw radial connecting lines from center core to nodes
+      nodes.forEach(node => {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(node.x, node.y);
+        ctx.strokeStyle = node.color + '40';
+        ctx.lineWidth = 1 / transform.scale;
+        ctx.stroke();
+      });
+
+      // Draw Central Core Node Glow & Circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, 36, 0, Math.PI * 2);
+      const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 52);
+      coreGrad.addColorStop(0, '#7c3aedff');
+      coreGrad.addColorStop(0.7, '#6d28d988');
+      coreGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = coreGrad;
+      ctx.fill();
+
+      ctx.fillStyle = '#4c1d95';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#a78bfa';
+      ctx.lineWidth = 2 / transform.scale;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Myraa Core', cx, cy);
+
       // Draw edges
       edges.forEach(edge => {
         ctx.beginPath();
@@ -299,11 +337,11 @@ export function MemoryGraph({ memories, onSelectMemory, themeColor }: MemoryGrap
         // Label
         if (transform.scale > 0.8 || isSelected || isHovered) {
           ctx.fillStyle = '#ffffff';
-          ctx.font = `${Math.max(10, 12 / transform.scale)}px sans-serif`;
+          ctx.font = `${Math.max(10, 11 / transform.scale)}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'top';
-          const label = node.memory.text.substring(0, 20) + (node.memory.text.length > 20 ? '...' : '');
-          ctx.fillText(label, node.x, node.y + node.radius + 5 / transform.scale);
+          const label = node.memory.text.substring(0, 18) + (node.memory.text.length > 18 ? '...' : '');
+          ctx.fillText(label, node.x, node.y + node.radius + 4 / transform.scale);
         }
       });
 
@@ -414,10 +452,14 @@ export function MemoryGraph({ memories, onSelectMemory, themeColor }: MemoryGrap
     });
   };
 
+  const resetTransform = () => {
+    setTransform({ x: 0, y: 0, scale: 1 });
+  };
+
   if (!memories.length) {
     return (
-      <div className="flex items-center justify-center h-full w-full bg-[#0a0d1a] text-gray-400 font-sans">
-        <p>No memories yet. Add some memories to see the graph.</p>
+      <div className="flex items-center justify-center h-full w-full bg-[#060814] text-slate-400 font-sans">
+        <p>No memories yet. Add some memories to populate graph nodes.</p>
       </div>
     );
   }
@@ -425,7 +467,7 @@ export function MemoryGraph({ memories, onSelectMemory, themeColor }: MemoryGrap
   return (
     <div 
       ref={containerRef} 
-      className="relative w-full h-full bg-[#0a0d1a] overflow-hidden font-sans"
+      className="relative w-full h-full bg-[#060814] overflow-hidden font-sans select-none"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -435,59 +477,69 @@ export function MemoryGraph({ memories, onSelectMemory, themeColor }: MemoryGrap
     >
       <canvas ref={canvasRef} className="absolute inset-0" />
 
-      {/* Legend */}
-      <div className="absolute top-4 right-4 bg-[#111827]/80 backdrop-blur-sm p-4 rounded-xl border border-gray-800 shadow-xl pointer-events-none">
-        <h3 className="text-white text-sm font-semibold mb-3">Categories</h3>
-        <div className="flex flex-col gap-2">
+      {/* Legend Box */}
+      <div className="absolute top-4 right-4 bg-[#0a0d24]/90 backdrop-blur-md p-4 rounded-xl border border-white/10 shadow-2xl pointer-events-none w-44">
+        <h3 className="text-white text-xs font-bold font-mono tracking-wider mb-2.5 uppercase">Categories</h3>
+        <div className="flex flex-col gap-1.5 font-mono text-[10px]">
           {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
-            <div key={cat} className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-gray-300 text-xs capitalize">{cat}</span>
+            <div key={cat} className="flex items-center gap-2 text-slate-300">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+              <span className="capitalize">{cat}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="absolute bottom-4 left-4 text-gray-400 text-xs pointer-events-none flex flex-col gap-1">
-        <div>Nodes: {nodesRef.current.length}</div>
-        <div>Edges: {edgesRef.current.length}</div>
+      {/* Bottom Zoom & Reset View Bar */}
+      <div className="absolute bottom-4 inset-x-4 flex items-center justify-between pointer-events-auto">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-[#090b1c]/90 backdrop-blur-md text-slate-300 text-xs font-mono">
+          <button onClick={() => setTransform(p => ({ ...p, scale: Math.max(0.4, p.scale - 0.1) }))} className="px-2 py-0.5 hover:text-white cursor-pointer font-bold">-</button>
+          <span>{Math.round(transform.scale * 100)}%</span>
+          <button onClick={() => setTransform(p => ({ ...p, scale: Math.min(2.5, p.scale + 0.1) }))} className="px-2 py-0.5 hover:text-white cursor-pointer font-bold">+</button>
+        </div>
+
+        <button
+          onClick={resetTransform}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-[#090b1c]/90 backdrop-blur-md text-slate-300 hover:text-white text-xs font-mono transition cursor-pointer"
+        >
+          <span>🔄 Reset View</span>
+        </button>
       </div>
 
       {/* Hover Tooltip */}
       {hoveredNode && !selectedMemory && !isDragging.current && !isPanning.current && (
-        <div className="absolute bottom-4 right-4 max-w-sm bg-[#111827]/90 backdrop-blur-md p-4 rounded-xl border border-gray-700 shadow-2xl pointer-events-none transform transition-all duration-200">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="absolute bottom-16 right-4 max-w-xs bg-[#090b1c]/95 backdrop-blur-md p-3.5 rounded-xl border border-white/15 shadow-2xl pointer-events-none">
+          <div className="flex items-center gap-2 mb-1.5">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: hoveredNode.color }} />
-            <span className="text-gray-300 text-xs capitalize">{hoveredNode.memory.category}</span>
+            <span className="text-slate-300 text-[10px] font-mono uppercase font-bold">{hoveredNode.memory.category}</span>
           </div>
-          <p className="text-white text-sm line-clamp-3">{hoveredNode.memory.text}</p>
+          <p className="text-white text-xs leading-relaxed line-clamp-3">{hoveredNode.memory.text}</p>
         </div>
       )}
 
       {/* Selected Node Panel */}
       {selectedMemory && (
-        <div className="absolute bottom-4 right-4 w-80 bg-[#111827]/95 backdrop-blur-xl p-5 rounded-xl border border-gray-700 shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-4">
+        <div className="absolute bottom-16 right-4 w-72 bg-[#090b1c]/95 backdrop-blur-xl p-4 rounded-xl border border-purple-500/30 shadow-2xl">
           <button 
             onClick={() => setSelectedMemory(null)}
-            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+            className="absolute top-3 right-3 text-slate-400 hover:text-white transition cursor-pointer text-sm"
           >
             ×
           </button>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <div 
-              className="w-3 h-3 rounded-full" 
+              className="w-2.5 h-2.5 rounded-full" 
               style={{ backgroundColor: CATEGORY_COLORS[selectedMemory.category] || '#9ca3af' }} 
             />
-            <span className="text-gray-300 text-xs font-medium uppercase tracking-wider">
+            <span className="text-slate-300 text-[10px] font-mono font-bold uppercase tracking-wider">
               {selectedMemory.category}
             </span>
           </div>
-          <p className="text-white text-sm leading-relaxed mb-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+          <p className="text-white text-xs leading-relaxed mb-3 max-h-36 overflow-y-auto pr-1">
             {selectedMemory.text}
           </p>
-          <div className="text-gray-500 text-xs flex justify-between">
-            <span>Created: {new Date(selectedMemory.createdAt).toLocaleDateString()}</span>
+          <div className="text-slate-400 text-[9px] font-mono">
+            Recorded: {new Date(selectedMemory.createdAt).toLocaleDateString()}
           </div>
         </div>
       )}

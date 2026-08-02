@@ -164,7 +164,7 @@ export function MemoryDashboard({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute inset-y-0 right-0 w-full max-w-lg bg-[#020206]/95 border-l border-white/15 backdrop-blur-2xl z-50 flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.8)]"
+            className="absolute inset-y-0 right-0 w-full max-w-xl bg-[#080a1c]/95 border-l border-white/15 backdrop-blur-2xl z-50 flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.9)]"
           >
             {/* Header */}
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
@@ -451,12 +451,30 @@ export function MemoryDashboard({
             )}
 
             {/* Technical visual core footprint footer */}
-            <div className="p-5 border-t border-white/10 bg-black/40 flex items-center justify-between text-[9px] font-mono text-slate-600 tracking-wider">
-              <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.7)] animate-pulse" />
-                <span>MEM-SYNC STREAM ACTIVE</span>
-              </span>
-              <span>DURABLE LOCAL JSON DB SEED</span>
+            <div className="p-3 border-t border-white/10 bg-[#070919] grid grid-cols-3 gap-2.5 text-[9px] font-mono text-slate-400">
+              <div className="flex items-center gap-2 p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300">
+                <RefreshCw size={14} className="animate-spin text-cyan-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-[8px] uppercase tracking-wider text-cyan-400">MEM-SYNC</div>
+                  <div className="truncate text-slate-300">Stream Active</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300">
+                <Sparkles size={14} className="text-purple-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-[8px] uppercase tracking-wider text-purple-400">STORAGE</div>
+                  <div className="truncate text-slate-300">Encrypted</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+                <Brain size={14} className="text-indigo-400 shrink-0" />
+                <div>
+                  <div className="font-bold text-[8px] uppercase tracking-wider text-indigo-400">DURABLE LOCAL</div>
+                  <div className="truncate text-slate-300">JSON DB Seed</div>
+                </div>
+              </div>
             </div>
           </motion.div>
         </>
